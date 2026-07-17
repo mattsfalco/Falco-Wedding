@@ -242,9 +242,9 @@
       transition: fill 0.2s ease, stroke 0.2s ease;
     }
     .tp-num {
-      fill: var(--ink);
-      font-family: var(--display);
-      font-weight: 600;
+      fill: #4f7a50;                 /* the sage 3mf numeral, deepened to read on the blue table */
+      font-family: var(--body);
+      font-weight: 700;
       text-anchor: middle;
       dominant-baseline: central;
     }
@@ -559,7 +559,8 @@
   const my = m => (m + MARGIN) * SCALE;
   const ms = m => m * SCALE;
 
-  const SEAT_W = 0.66, SEAT_H = 0.36, SEAT_GAP = 0.05;
+  const SEAT_H = 0.34, SEAT_GAP_M = 0.06, SIDE_SEAT_W = 0.74;
+  const SLOT_MIN = 0.58;   // minimum metres a single seat gets along a table edge
 
   function el(tag, attrs, kids) {
     const n = document.createElementNS(SVGNS, tag);
@@ -567,13 +568,24 @@
     for (const c of (kids || [])) n.appendChild(c);
     return n;
   }
-  function fit(textNode, str, maxW) {
-    // shrink font until the label fits the card width; returns chosen px size
-    let size = 15;
-    const approx = s => str.length * s * 0.52;
-    while (approx(size) > maxW && size > 8) size -= 0.5;
-    textNode.setAttribute("font-size", size);
-    return size;
+  // Shrink a label until it fits inside its card, in both width and height.
+  function fitText(node, str, maxW, maxH) {
+    let size = Math.min(15, maxH);
+    const approx = s => str.length * s * 0.54;
+    while (approx(size) > maxW && size > 6) size -= 0.5;
+    node.setAttribute("font-size", Math.max(6, size));
+  }
+  // A table grows to fit its busiest side, so 3- and 4-seat sides each get
+  // room and never overlap. Any w/h given in the data acts as a floor, so the
+  // couple's tall head table stays tall.
+  function tableDims(t) {
+    const s = t.seats || {};
+    const maxTB = Math.max((s.top || []).length, (s.bottom || []).length, 1);
+    const maxLR = Math.max((s.left || []).length, (s.right || []).length, 1);
+    return {
+      w: Math.max(t.w || 0, maxTB * SLOT_MIN),
+      h: Math.max(t.h || 0, maxLR * SLOT_MIN),
+    };
   }
 
   const svg = document.getElementById("map");
@@ -615,42 +627,52 @@
     }
   }
 
-  // ---- seat cards for one edge
-  function addSeats(g, names, edge, t) {
-    const w = ms(t.w), h = ms(t.h), cx = mx(t.x), cy = my(t.y);
-    const sw = ms(SEAT_W), sh = ms(SEAT_H), gap = ms(SEAT_GAP);
+  // ---- seat card, sized to its slot so cards on an edge never overlap
+  function drawSeat(g, name, scx, scy, cardW, cardH) {
+    const seat = el("g", { "data-name": name });
+    seat.appendChild(el("rect", { x: scx - cardW / 2, y: scy - cardH / 2, width: cardW, height: cardH, rx: 6, ry: 6, class: "seat-body" }));
+    const txt = el("text", { x: scx, y: scy, class: "seat-txt" });
+    txt.textContent = name;
+    fitText(txt, name, cardW - 8, cardH - 6);
+    seat.appendChild(txt);
+    g.appendChild(seat);
+  }
+  // Lay names along one edge. Each seat owns an equal slot of the edge, so a
+  // 4-seat side just gives each name a narrower slot — it is never forced wider.
+  function addSeats(g, names, edge, cx, cy, w, h) {
     const n = names.length;
-    names.forEach((name, i) => {
-      let scx, scy;
-      if (edge === "top" || edge === "bottom") {
-        scx = cx - w / 2 + w * (i + 0.5) / n;
-        scy = edge === "top" ? cy - h / 2 - gap - sh / 2 : cy + h / 2 + gap + sh / 2;
-      } else {
-        scy = cy - h / 2 + h * (i + 0.5) / n;
-        scx = edge === "left" ? cx - w / 2 - gap - sw / 2 : cx + w / 2 + gap + sw / 2;
-      }
-      const seat = el("g", { "data-name": name });
-      seat.appendChild(el("rect", { x: scx - sw / 2, y: scy - sh / 2, width: sw, height: sh, rx: 6, ry: 6, class: "seat-body" }));
-      const txt = el("text", { x: scx, y: scy, class: "seat-txt" });
-      txt.textContent = name;
-      fit(txt, name, sw - 8);
-      seat.appendChild(txt);
-      g.appendChild(seat);
-    });
+    if (!n) return;
+    const gap = ms(SEAT_GAP_M);
+    if (edge === "top" || edge === "bottom") {
+      const slot = w / n, cardW = slot - gap, cardH = ms(SEAT_H);
+      names.forEach((name, i) => {
+        const scx = (cx - w / 2) + slot * (i + 0.5);
+        const scy = edge === "top" ? cy - h / 2 - gap - cardH / 2 : cy + h / 2 + gap + cardH / 2;
+        drawSeat(g, name, scx, scy, cardW, cardH);
+      });
+    } else {
+      const slot = h / n, cardW = ms(SIDE_SEAT_W), cardH = Math.min(ms(SEAT_H), slot - gap);
+      names.forEach((name, i) => {
+        const scy = (cy - h / 2) + slot * (i + 0.5);
+        const scx = edge === "left" ? cx - w / 2 - gap - cardW / 2 : cx + w / 2 + gap + cardW / 2;
+        drawSeat(g, name, scx, scy, cardW, cardH);
+      });
+    }
   }
 
   // ---- tables
   const tableEls = {};
   for (const t of tableSeating) {
-    const cx = mx(t.x), cy = my(t.y), w = ms(t.w), h = ms(t.h);
+    const dims = tableDims(t);
+    const cx = mx(t.x), cy = my(t.y), w = ms(dims.w), h = ms(dims.h);
     const rot = t.rotation ? `rotate(${t.rotation} ${cx} ${cy})` : null;
     const g = el("g", Object.assign({ class: "tp", "data-id": t.id, role: "button", tabindex: "0" },
                                     rot ? { transform: rot } : {}));
     g.appendChild(el("rect", { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 10, ry: 10, class: "tp-body" }));
-    const num = el("text", { x: cx, y: cy, class: "tp-num", "font-size": Math.min(w, h) * 0.6 });
+    const num = el("text", { x: cx, y: cy, class: "tp-num", "font-size": Math.min(w, h) * 0.62 });
     num.textContent = t.id;
     g.appendChild(num);
-    for (const edge of ["top", "bottom", "left", "right"]) addSeats(g, t.seats[edge] || [], edge, t);
+    for (const edge of ["top", "bottom", "left", "right"]) addSeats(g, t.seats[edge] || [], edge, cx, cy, w, h);
     svg.appendChild(g);
     tableEls[t.id] = g;
 
@@ -666,43 +688,50 @@
   const ZMIN = 1, ZMAX = 5;
 
   function computeFit() {
-    // fit the full tent to the stage: whichever axis is the binding constraint
-    const availW = stage.clientWidth - 2;
-    const availH = stage.clientHeight - 2;
-    fitW = Math.min(availW, availH * (VBW / VBH));
+    // fit to width at zoom 1; the tall portrait map then scrolls vertically,
+    // which fills the stage edge-to-edge (bigger, more legible names) and gives
+    // horizontal scroll room the moment you zoom in, so pinch stays anchored.
+    fitW = stage.clientWidth - 2;
   }
-  function applyZoom(focal) {
-    // focal: {x,y} client point to keep stable, optional
-    const before = focal ? {
-      sx: (stage.scrollLeft + (focal.x - stage.getBoundingClientRect().left)) / (fitW * zoom),
-      sy: (stage.scrollTop + (focal.y - stage.getBoundingClientRect().top)) / (fitW * zoom * VBH / VBW)
-    } : null;
+  function sizeSvg() {
     const w = fitW * zoom;
     svg.style.width = w + "px";
     svg.style.height = (w * VBH / VBW) + "px";
-    if (before) {
-      stage.scrollLeft = before.sx * w - (focal.x - stage.getBoundingClientRect().left);
-      stage.scrollTop = before.sy * (w * VBH / VBW) - (focal.y - stage.getBoundingClientRect().top);
-    }
   }
-  function setZoom(z, focal) {
-    zoom = Math.max(ZMIN, Math.min(ZMAX, z));
-    applyZoom(focal);
+  // Zoom so the content point under (clientX, clientY) stays fixed on screen —
+  // pinch centres on the fingers, wheel on the cursor. Uses the SVG's actual
+  // rendered size before and after, so the focal point is exact. No focal point
+  // (buttons) → zoom about the centre of the stage.
+  function zoomTo(nextZoom, clientX, clientY) {
+    nextZoom = Math.max(ZMIN, Math.min(ZMAX, nextZoom));
+    const rect = stage.getBoundingClientRect();
+    const fx = clientX == null ? rect.width / 2 : clientX - rect.left;
+    const fy = clientY == null ? rect.height / 2 : clientY - rect.top;
+    // Sizes are computed, not read from the DOM: an <svg> reports offsetWidth 0,
+    // and we already know its exact pixel size is fitW * zoom.
+    const oldW = fitW * zoom, oldH = oldW * VBH / VBW;
+    const rx = (stage.scrollLeft + fx) / oldW;   // fraction of the map under the focal point
+    const ry = (stage.scrollTop + fy) / oldH;
+    zoom = nextZoom;
+    sizeSvg();
+    const newW = fitW * zoom, newH = newW * VBH / VBW;
+    stage.scrollLeft = rx * newW - fx;
+    stage.scrollTop = ry * newH - fy;
   }
-  function relayout() { computeFit(); applyZoom(); }
+  function relayout() { computeFit(); sizeSvg(); }
 
-  document.getElementById("zin").addEventListener("click", () => setZoom(zoom * 1.4));
-  document.getElementById("zout").addEventListener("click", () => setZoom(zoom / 1.4));
-  document.getElementById("zreset").addEventListener("click", () => { setZoom(1); stage.scrollTo({ top: 0, left: 0 }); });
+  document.getElementById("zin").addEventListener("click", () => zoomTo(zoom * 1.4));
+  document.getElementById("zout").addEventListener("click", () => zoomTo(zoom / 1.4));
+  document.getElementById("zreset").addEventListener("click", () => { zoom = 1; sizeSvg(); stage.scrollTo({ top: 0, left: 0 }); });
 
-  // desktop wheel zoom (ctrl/⌘+wheel, or plain wheel) centred on the cursor
+  // desktop wheel zoom, centred on the cursor
   stage.addEventListener("wheel", e => {
     if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) < 8) return;
     e.preventDefault();
-    setZoom(zoom * (e.deltaY < 0 ? 1.12 : 0.89), { x: e.clientX, y: e.clientY });
+    zoomTo(zoom * (e.deltaY < 0 ? 1.12 : 0.89), e.clientX, e.clientY);
   }, { passive: false });
 
-  // two-finger pinch
+  // two-finger pinch, centred on the midpoint between the fingers
   let pinch = null;
   stage.addEventListener("touchstart", e => {
     if (e.touches.length === 2) {
@@ -715,7 +744,7 @@
       e.preventDefault();
       const [a, b] = e.touches;
       const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-      setZoom(pinch.z * (d / pinch.d), { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 });
+      zoomTo(pinch.z * (d / pinch.d), (a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2);
     }
   }, { passive: false });
   stage.addEventListener("touchend", e => { if (e.touches.length < 2) pinch = null; }, { passive: true });
