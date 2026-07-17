@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swedish Craft Beverage Map</title>
+  <meta name="description" content="Learn more about the Swedish alcohol products being served tonight — every bottle mapped to the vineyard or brewery it came from.">
+  <meta name="theme-color" content="#f0e6d2">
+
+  <!-- A Material Symbols wine glass, fetched at load. Iconify serves the icon with a colour
+       parameter, so it wears the map's own herb green rather than default black — a mid tone,
+       which keeps it legible on both light and dark browser tabs. -->
+  <link rel="icon" type="image/svg+xml"
+        href="https://api.iconify.design/material-symbols/wine-bar.svg?color=%236e9a6e&width=64&height=64">
+
+  <!-- Share cards. The image is the direct file, not the share.google link it came from — that
+       link serves an HTML results page, which a scraper can't render as a picture. It's hosted
+       on scanmagazine.co.uk, so it's outside our control: if the preview ever goes blank, that
+       file has moved and wants re-hosting alongside this page.
+       og:url is deliberately absent — it must be absolute, and until this page has a home any
+       value would be a guess pointing previews at the wrong place. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Swedish Craft Beverages">
+  <meta property="og:title" content="Swedish Craft Beverages">
+  <meta property="og:description" content="Learn more about the Swedish alcohol products being served tonight — every bottle mapped to the vineyard or brewery it came from.">
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:image" content="https://scanmagazine.co.uk/content/uploads/2020/02/3-Nyn%C3%A4shamns.jpg">
+  <meta property="og:image:width" content="950">
+  <meta property="og:image:height" content="561">
+  <meta property="og:image:alt" content="A glass of Nynäshamns beer poured beside a bottle of Bedarö Bitter on a bar top.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Swedish Craft Beverages">
+  <meta name="twitter:description" content="Learn more about the Swedish alcohol products being served tonight — every bottle mapped to the vineyard or brewery it came from.">
+  <meta name="twitter:image" content="https://scanmagazine.co.uk/content/uploads/2020/02/3-Nyn%C3%A4shamns.jpg">
+  <meta name="twitter:image:alt" content="A glass of Nynäshamns beer poured beside a bottle of Bedarö Bitter on a bar top.">
+
+  <!-- Explicit https, never protocol-relative: served from a plain-http host (a Home Assistant
+       box, say) a "//" URL inherits http, and jsdelivr answers that with a 301 to https. Desktop
+       browsers follow it; iOS blocks the insecure hop before the redirect lands, so the library
+       never arrives and the map never starts. -->
+  <script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Midsummer garden: linen table, duck-egg water, a quilt of four pastels */
+      --linen: #f0e6d2;
+      --linen-deep: #ddcfb2;
+      --sea: #cfe4ec;
+      --ink: #3a4a3d;
+      --muted: #7b8874;
+      --hairline: rgba(58, 74, 61, 0.14);
+      --paper: #fffdf8;
+      --display: "Cormorant Garamond", Georgia, serif;
+      --body: "Karla", ui-sans-serif, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: var(--body);
+      color: var(--ink);
+      background:
+        radial-gradient(120% 90% at 50% 0%, #f7f0e2 0%, var(--linen) 45%, var(--linen-deep) 100%);
+    }
+
+    #globeViz {
+      position: absolute;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 22px;
+      pointer-events: none;
+    }
+
+    /* --- Panels: pressed-linen cards --- */
+    .card {
+      background: rgba(255, 253, 248, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px -18px rgba(58, 74, 61, 0.5);
+      pointer-events: auto;
+    }
+
+    header.card {
+      max-width: 27rem;
+      padding: 18px 20px;
+    }
+    header h1 {
+      margin: 0;
+      font-family: var(--display);
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      line-height: 1.15;
+    }
+    header p {
+      margin: 6px 0 0;
+      font-size: 0.78rem;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    /* --- Jump bar --- */
+    .jump {
+      align-self: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 999px;
+    }
+    .jump-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 6px;
+    }
+    .chip {
+      font-family: var(--body);
+      font-size: 0.74rem;
+      font-weight: 500;
+      color: var(--ink);
+      background: var(--tint);
+      border: 1px solid var(--edge);
+      border-radius: 999px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .chip:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px -8px rgba(58, 74, 61, 0.7);
+    }
+    .chip:focus-visible,
+    .close:focus-visible,
+    .pin-card:focus-visible {
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+    }
+
+    /* --- Sidebar --- */
+    #infoSidebar {
+      position: absolute;
+      top: 22px;
+      right: 22px;
+      width: min(26rem, calc(100vw - 44px));
+      max-height: calc(100vh - 44px);
+      padding: 22px;
+      overflow-y: auto;
+    }
+    #infoSidebar.hidden { display: none; }
+    .close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      border: 0;
+      background: none;
+      font-size: 1.05rem;
+      line-height: 1;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px;
+    }
+    .close:hover { color: var(--ink); }
+
+    .producer-name {
+      font-family: var(--display);
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin: 0 26px 0 0;
+      line-height: 1.1;
+    }
+    .producer-place {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--seal);
+      margin: 5px 0 0;
+    }
+    .link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid var(--hairline);
+      padding-bottom: 1px;
+      transition: border-color 0.15s ease;
+    }
+    .link:hover { border-color: var(--ink); }
+
+    .rule {
+      height: 1px;
+      background: var(--hairline);
+      margin: 16px 0;
+      border: 0;
+    }
+
+    .product {
+      display: flex;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .product:last-child { border-bottom: 0; }
+    /* Only when there's a range to choose from — see showSidebarFor. */
+    .product.selectable {
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.15s ease;
+    }
+    .product.selectable:hover { background: rgba(255, 255, 255, 0.55); }
+    .product.selectable:focus-visible {
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+    }
+    .product.is-active {
+      background: rgba(255, 255, 255, 0.75);
+      box-shadow: inset 3px 0 0 var(--seal);
+      border-radius: 0 8px 8px 0;
+      padding-left: 12px;
+      margin-left: -12px;
+    }
+    .product img {
+      width: 46px;
+      height: 84px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .product-body { min-width: 0; flex: 1; }
+    .kind {
+      display: inline-block;
+      font-size: 0.58rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: var(--tint);
+      border-radius: 999px;
+      padding: 3px 8px;
+      margin-bottom: 6px;
+    }
+    .product h3 {
+      font-family: var(--display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 0;
+      line-height: 1.2;
+    }
+    .facts {
+      display: flex;
+      gap: 10px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--seal);
+      margin-top: 3px;
+    }
+    .taste {
+      font-family: var(--display);
+      font-style: italic;
+      font-size: 1rem;
+      line-height: 1.45;
+      color: var(--ink);
+      margin: 8px 0 0;
+    }
+    .meta {
+      font-size: 0.68rem;
+      line-height: 1.55;
+      color: var(--muted);
+      margin-top: 7px;
+    }
+    .meta b { color: var(--ink); font-weight: 700; }
+
+    /* --- Garden markers: bottles thrown clear of the country on a leader --- */
+    .pin {
+      /* A zero-size anchor. The globe drops this exactly on the coordinate and every part of
+         the marker is laid out around it, so nothing but the visible card and stake can take
+         a click — a label can never swallow its neighbour's. */
+      width: 0;
+      height: 0;
+      cursor: pointer;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .pin:hover { z-index: 50; }
+    .pin-card,
+    .pin-dot { pointer-events: auto; }
+    .pin.is-hidden,
+    .pin.is-hidden .pin-card,
+    .pin.is-hidden .pin-dot { pointer-events: none; }
+
+    /* Marker container, anchored on the stake. Size and spread are deliberately NOT tied to
+       one scale here: placeMarkers() drives the leader length / card offset (--r, --dx, --dy)
+       by an aggressive spread factor and the card size (--ksize) by a gentle one. So zooming
+       into a county throws the bottles outward faster than the map grows while the bottles
+       themselves grow slowly — the county stays readable instead of being buried. */
+    .pin-scale {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+    .leader {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: var(--r, 70px);        /* full spread distance in px, set per-frame */
+      height: 1.5px;
+      margin-top: -0.75px;
+      background: var(--c);
+      opacity: 0.6;
+      transform-origin: 0 50%;
+      transform: rotate(var(--a, 0deg));
+    }
+    .pin-card {
+      position: absolute;
+      left: 0;
+      top: 0;
+      /* Centre on the stake, shift out to the fanned point, then scale about the card centre. */
+      transform: translate(-50%, -50%) translate(var(--dx, 0px), var(--dy, 0px)) scale(var(--ksize, 1));
+      background: var(--paper);
+      border: 1.5px solid var(--c);
+      border-radius: 9px;
+      padding: 5px 5px 4px;
+      box-shadow: 0 6px 14px -8px rgba(58, 74, 61, 0.85);
+      /* Only the shadow transitions: the offset updates as the camera moves, and animating
+         that would make every label swim behind the map. */
+      transition: box-shadow 0.18s ease;
+    }
+    .pin:hover .pin-card {
+      transform: translate(-50%, -50%) translate(var(--dx, 0px), var(--dy, 0px)) scale(calc(var(--ksize, 1) * 1.12));
+      box-shadow: 0 10px 22px -8px rgba(58, 74, 61, 0.9);
+    }
+    .pin-card img {
+      display: block;
+      width: 24px;
+      height: 40px;
+      object-fit: contain;
+    }
+    .pin-dot {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--paper);
+      border: 1.5px solid var(--c);
+      transform: translate(-50%, -50%);
+    }
+    /* The selected bottle, whichever way it was picked. A white halo was invisible against the
+       pale sea, so ring it in ink: the one dark accent on the map reads instantly. */
+    .pin.is-active .pin-card {
+      box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--ink), 0 8px 20px -8px rgba(58, 74, 61, 0.95);
+    }
+
+    /* --- Home: the reference point, sat on its own spot --- */
+    .home-mark {
+      position: absolute;
+      left: 0;
+      top: 0;
+      /* Centred on the coordinate itself, and riding the same gentle zoom curve as the bottles. */
+      transform: translate(-50%, -50%) scale(var(--ksize, 1));
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--paper);
+      border: 1.5px solid var(--ink);
+      box-shadow: 0 4px 10px -5px rgba(58, 74, 61, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+    .home-mark svg {
+      width: 15px;
+      height: 15px;
+      fill: none;
+      stroke: var(--ink);
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .home-label {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, calc(14px * var(--ksize, 1))) scale(var(--ksize, 1));
+      font-family: var(--display);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--ink);
+      white-space: nowrap;
+      text-shadow: 0 1px 0 var(--paper), 0 0 4px var(--paper), 0 0 8px var(--paper);
+      pointer-events: none;
+    }
+
+    .map-error {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      margin: 0;
+      text-align: center;
+      font-family: var(--display);
+      font-size: 1.15rem;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    /* Tooltip */
+    .lan-tip {
+      font-family: var(--body);
+      background: var(--paper);
+      border: 1px solid var(--hairline);
+      border-radius: 10px;
+      padding: 8px 12px;
+      box-shadow: 0 10px 26px -16px rgba(58, 74, 61, 0.8);
+      color: var(--ink);
+    }
+    .lan-tip strong {
+      font-family: var(--display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      display: block;
+    }
+    .lan-tip span {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    ::-webkit-scrollbar { width: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(58, 74, 61, 0.18);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(58, 74, 61, 0.32); }
+
+    @media (max-width: 720px) {
+      .overlay { padding: 12px; }
+      /* Sits above the jump bar rather than under it — the sheet and the chips share
+         the bottom edge on narrow screens. */
+      #infoSidebar {
+        top: auto;
+        bottom: 92px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+        max-height: 54vh;
+      }
+      header h1 { font-size: 1.4rem; }
+    }
+
+    /* Landscape phone: short and narrow. The bottom sheet at 54vh would slide up under the
+       header and clip its own content. Compact the header and pin the sheet between the
+       header and the jump bar, so it always sits clear and scrolls internally instead. */
+    @media (max-width: 720px) and (max-height: 520px) {
+      header.card { padding: 9px 14px; }
+      header h1 { font-size: 1.05rem; }
+      header p { display: none; }        /* supplementary — the title still carries the page */
+      #infoSidebar {
+        top: 60px;
+        bottom: 88px;
+        max-height: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="globeViz"></div>
+
+  <div class="overlay">
+    <header class="card">
+      <h1>🇸🇪 Swedish Craft Beverages</h1>
+      <p>Learn more about the Swedish alcohol products being served tonight</p>
+    </header>
+
+    <div id="infoSidebar" class="card hidden">
+      <button class="close" onclick="closeSidebar()" aria-label="Close">✕</button>
+      <div id="sidebarContent"></div>
+    </div>
+
+    <footer class="jump card">
+      <span class="jump-label">Jump to</span>
+      <button class="chip" style="--tint:#eaf1e4; --edge:#6e9a6e" onclick="focusProducer('Nynäshamns Ångbryggeri')">Nynäshamn</button>
+      <button class="chip" style="--tint:#e4eef1; --edge:#5f9aa8" onclick="focusProducer('Arilds Vingård')">Arild</button>
+      <button class="chip" style="--tint:#f6e8ea; --edge:#b05f6b" onclick="focusProducer('Hällåkra Vingård')">Hällåkra</button>
+      <button class="chip" style="--tint:#eeeaf5; --edge:#8e76a8" onclick="focusProducer('Vingården i Klagshamn')">Klagshamn</button>
+      <button class="chip" style="--tint:#f7ecf1; --edge:#b4708f" onclick="focusProducer('IDUNN Norsjö Wine & Co')">Norsjö</button>
+    </footer>
+  </div>
+
+  <script>
+    // If the library didn't arrive, say so rather than leaving a blank rectangle: everything
+    // below needs it, and a silent void gives a guest — or whoever is debugging — nothing to go on.
+    if (typeof Globe !== 'function') {
+      document.getElementById('globeViz').innerHTML =
+        '<p class="map-error">The map couldn\'t load.<br>This device can\'t reach cdn.jsdelivr.net.</p>';
+      throw new Error('globe.gl did not load');
+    }
+
+    // Swedish counties (län), inlined so the page works offline / from file://.
+    // `c` is the source data's four-colour index: neighbouring län never share a value,
+    // which is what lets all 21 be tinted without two touching counties matching.
+    // Rings are wound clockwise: three-globe fills the side opposite to the GeoJSON spec's
+    // winding, and counter-clockwise rings render inverted over the whole globe.
+    const SWEDEN_LAN = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Gävleborg","c":2},"geometry":{"type":"Polygon","coordinates":[[[17.377,60.624],[17.316,60.486],[17.217,60.385],[17.226,60.31],[17.12,60.284],[16.981,60.297],[16.81,60.211],[16.717,60.216],[16.543,60.358],[16.399,60.419],[16.203,60.58],[16.395,60.75],[16.404,60.795],[16.261,60.89],[16.156,60.999],[15.918,61.031],[15.801,61.063],[15.703,61.128],[15.637,61.246],[15.451,61.346],[15.186,61.544],[15.102,61.492],[14.712,61.492],[14.667,61.563],[14.482,61.591],[14.602,61.812],[14.684,61.869],[14.838,61.84],[15.126,61.851],[15.125,62.0],[15.417,62.117],[15.455,62.16],[15.359,62.282],[15.53,62.349],[15.627,62.355],[16.209,62.261],[16.488,62.251],[17.011,62.18],[17.21,62.178],[17.499,62.148],[17.469,62.062],[17.344,61.924],[17.339,61.829],[17.399,61.722],[17.52,61.702],[17.446,61.633],[17.362,61.709],[17.097,61.636],[17.082,61.571],[17.177,61.487],[17.104,61.399],[17.2,61.348],[17.121,61.308],[17.213,61.235],[17.179,61.136],[17.158,60.948],[17.246,60.898],[17.283,60.781],[17.238,60.698],[17.377,60.624]]]}},{"type":"Feature","properties":{"name":"Jönköping","c":2},"geometry":{"type":"Polygon","coordinates":[[[15.551,57.211],[15.416,57.236],[15.233,57.234],[15.175,57.197],[14.951,57.152],[14.809,57.228],[14.718,57.22],[14.382,57.142],[14.356,57.022],[14.393,56.955],[14.335,56.893],[14.234,56.917],[14.159,57.014],[14.065,57.05],[13.951,57.039],[13.872,57.004],[13.78,57.036],[13.694,56.983],[13.607,57.021],[13.592,57.068],[13.395,57.121],[13.239,57.097],[13.138,57.041],[13.09,57.11],[13.117,57.157],[13.315,57.317],[13.413,57.355],[13.542,57.436],[13.683,57.565],[13.724,57.72],[13.767,57.781],[13.751,57.853],[14.045,57.864],[14.212,57.916],[14.237,58.002],[14.429,58.224],[14.486,58.154],[14.598,58.112],[14.835,58.095],[14.993,58.155],[15.099,58.009],[15.025,57.914],[15.154,57.74],[15.197,57.723],[15.443,57.712],[15.663,57.603],[15.617,57.566],[15.662,57.509],[15.629,57.461],[15.528,57.44],[15.495,57.302],[15.551,57.211]]]}},{"type":"Feature","properties":{"name":"Kalmar","c":1},"geometry":{"type":"MultiPolygon","coordinates":[[[[17.073,57.343],[17.042,57.271],[17.066,57.227],[16.973,57.104],[16.934,57.018],[16.871,56.969],[16.883,56.916],[16.83,56.826],[16.782,56.811],[16.643,56.568],[16.566,56.346],[16.491,56.24],[16.413,56.229],[16.399,56.545],[16.621,56.872],[16.717,56.892],[16.888,57.118],[16.91,57.202],[16.959,57.231],[16.966,57.305],[17.073,57.343]]],[[[16.687,57.989],[16.774,57.923],[16.711,57.891],[16.59,57.936],[16.46,57.895],[16.675,57.764],[16.707,57.689],[16.611,57.682],[16.629,57.557],[16.689,57.472],[16.656,57.409],[16.535,57.36],[16.485,57.295],[16.465,57.177],[16.553,57.11],[16.535,57.052],[16.44,57.014],[16.468,56.949],[16.409,56.808],[16.357,56.758],[16.379,56.676],[16.255,56.65],[16.213,56.548],[16.095,56.419],[16.066,56.336],[15.98,56.326],[15.8,56.375],[15.597,56.502],[15.363,56.482],[15.405,56.559],[15.419,56.678],[15.392,56.757],[15.559,56.824],[15.528,56.903],[15.783,56.908],[15.846,56.958],[15.806,57.02],[15.673,57.13],[15.591,57.157],[15.495,57.302],[15.528,57.44],[15.629,57.461],[15.662,57.509],[15.617,57.566],[15.663,57.603],[15.443,57.712],[15.634,57.846],[15.767,57.858],[15.931,57.819],[16.042,57.863],[16.076,57.976],[16.039,58.08],[16.173,58.073],[16.302,58.124],[16.44,58.125],[16.597,58.079],[16.687,57.989]]]]}},{"type":"Feature","properties":{"name":"Dalarna","c":1},"geometry":{"type":"Polygon","coordinates":[[[14.482,61.591],[14.667,61.563],[14.712,61.492],[15.102,61.492],[15.186,61.544],[15.451,61.346],[15.637,61.246],[15.703,61.128],[15.801,61.063],[15.918,61.031],[16.156,60.999],[16.261,60.89],[16.404,60.795],[16.395,60.75],[16.203,60.58],[16.399,60.419],[16.543,60.358],[16.717,60.216],[16.554,60.176],[16.473,60.111],[16.32,60.078],[16.167,60.104],[16.132,60.163],[15.975,60.189],[15.815,60.178],[15.75,60.147],[15.682,59.969],[15.535,59.973],[15.455,59.883],[15.238,60.016],[14.881,60.089],[14.769,60.098],[14.717,60.018],[14.451,60.037],[14.257,60.107],[14.158,60.229],[13.845,60.261],[13.669,60.407],[13.528,60.447],[13.261,60.683],[13.196,60.714],[13.098,60.817],[12.756,61.001],[12.711,61.057],[12.747,61.151],[12.82,61.205],[12.877,61.371],[12.614,61.547],[12.416,61.582],[12.162,61.725],[12.317,62.234],[12.315,62.272],[12.797,62.207],[13.049,62.081],[13.187,62.043],[13.285,62.047],[13.382,62.004],[13.327,61.906],[13.606,61.658],[14.296,61.6],[14.482,61.591]]]}},{"type":"Feature","properties":{"name":"Kronoberg","c":4},"geometry":{"type":"Polygon","coordinates":[[[15.551,57.211],[15.591,57.157],[15.673,57.13],[15.806,57.02],[15.846,56.958],[15.783,56.908],[15.528,56.903],[15.559,56.824],[15.392,56.757],[15.419,56.678],[15.405,56.559],[15.369,56.532],[15.343,56.469],[15.216,56.443],[15.104,56.463],[14.996,56.447],[14.915,56.382],[14.725,56.402],[14.541,56.477],[14.278,56.524],[14.095,56.541],[13.993,56.479],[13.577,56.424],[13.501,56.424],[13.452,56.492],[13.449,56.559],[13.308,56.702],[13.321,56.832],[13.352,56.868],[13.622,56.907],[13.694,56.983],[13.78,57.036],[13.872,57.004],[13.951,57.039],[14.065,57.05],[14.159,57.014],[14.234,56.917],[14.335,56.893],[14.393,56.955],[14.356,57.022],[14.382,57.142],[14.718,57.22],[14.809,57.228],[14.951,57.152],[15.175,57.197],[15.233,57.234],[15.416,57.236],[15.551,57.211]]]}},{"type":"Feature","properties":{"name":"Örebro","c":3},"geometry":{"type":"Polygon","coordinates":[[[15.455,59.883],[15.579,59.741],[15.558,59.638],[15.641,59.628],[15.752,59.441],[15.645,59.409],[15.633,59.293],[15.779,59.206],[15.771,59.197],[15.807,59.138],[15.804,59.122],[15.712,59.095],[15.64,59.037],[15.625,58.966],[15.539,58.874],[15.429,58.846],[15.279,58.845],[15.171,58.808],[15.011,58.699],[14.812,58.646],[14.695,58.734],[14.521,58.728],[14.41,58.845],[14.313,59.016],[14.33,59.301],[14.469,59.498],[14.482,59.584],[14.445,59.687],[14.418,59.926],[14.352,59.959],[14.456,60.002],[14.451,60.037],[14.717,60.018],[14.769,60.098],[14.881,60.089],[15.238,60.016],[15.455,59.883]]]}},{"type":"Feature","properties":{"name":"Östergötland","c":4},"geometry":{"type":"Polygon","coordinates":[[[16.781,58.634],[16.234,58.669],[16.409,58.597],[16.636,58.627],[16.786,58.573],[16.866,58.483],[16.72,58.437],[16.779,58.326],[16.73,58.269],[16.821,58.207],[16.687,57.989],[16.597,58.079],[16.44,58.125],[16.302,58.124],[16.173,58.073],[16.039,58.08],[16.076,57.976],[16.042,57.863],[15.931,57.819],[15.767,57.858],[15.634,57.846],[15.443,57.712],[15.197,57.723],[15.154,57.74],[15.025,57.914],[15.099,58.009],[14.993,58.155],[14.835,58.095],[14.598,58.112],[14.486,58.154],[14.429,58.224],[14.812,58.646],[15.011,58.699],[15.171,58.808],[15.279,58.845],[15.429,58.846],[15.539,58.874],[15.625,58.966],[15.724,58.985],[15.848,59.01],[16.078,58.925],[16.298,58.824],[16.453,58.692],[16.63,58.689],[16.781,58.634]]]}},{"type":"Feature","properties":{"name":"Södermanland","c":2},"geometry":{"type":"Polygon","coordinates":[[[16.966,59.532],[17.148,59.527],[17.245,59.5],[17.444,59.385],[17.342,59.325],[17.285,59.227],[17.386,58.998],[17.586,58.965],[17.627,58.918],[17.46,58.791],[17.276,58.731],[17.162,58.732],[17.093,58.661],[16.924,58.625],[16.781,58.634],[16.63,58.689],[16.453,58.692],[16.298,58.824],[16.078,58.925],[15.848,59.01],[15.724,58.985],[15.64,59.037],[15.712,59.095],[15.804,59.122],[15.771,59.197],[15.9,59.242],[16.005,59.359],[16.277,59.375],[16.287,59.454],[16.849,59.51],[16.966,59.532]]]}},{"type":"Feature","properties":{"name":"Västmanland","c":4},"geometry":{"type":"Polygon","coordinates":[[[15.779,59.206],[15.633,59.293],[15.645,59.409],[15.752,59.441],[15.641,59.628],[15.558,59.638],[15.579,59.741],[15.455,59.883],[15.535,59.973],[15.682,59.969],[15.75,60.147],[15.815,60.178],[15.975,60.189],[16.132,60.163],[16.167,60.104],[16.32,60.078],[16.473,60.111],[16.554,60.176],[16.717,60.216],[16.81,60.211],[16.981,60.297],[17.12,60.284],[17.226,60.31],[17.369,60.251],[17.386,60.201],[17.288,60.059],[17.211,60.042],[17.181,59.885],[17.05,59.839],[16.859,59.884],[16.797,59.785],[16.9,59.669],[16.966,59.532],[16.849,59.51],[16.287,59.454],[16.277,59.375],[16.005,59.359],[15.9,59.242],[15.779,59.206]]]}},{"type":"Feature","properties":{"name":"Halland","c":3},"geometry":{"type":"Polygon","coordinates":[[[13.117,57.157],[13.09,57.11],[13.138,57.041],[13.239,57.097],[13.395,57.121],[13.592,57.068],[13.607,57.021],[13.694,56.983],[13.622,56.907],[13.352,56.868],[13.321,56.832],[13.308,56.702],[13.449,56.559],[13.452,56.492],[13.501,56.424],[13.391,56.419],[13.231,56.343],[13.016,56.371],[12.976,56.444],[12.911,56.474],[12.934,56.547],[12.872,56.649],[12.732,56.647],[12.616,56.75],[12.598,56.821],[12.47,56.892],[12.375,56.912],[12.333,57.021],[12.271,57.043],[12.204,57.148],[12.109,57.394],[12.059,57.459],[11.915,57.403],[11.945,57.49],[11.913,57.583],[12.069,57.573],[12.302,57.616],[12.337,57.491],[12.416,57.436],[12.393,57.384],[12.434,57.306],[12.515,57.298],[12.595,57.351],[12.748,57.303],[12.944,57.278],[12.953,57.2],[13.117,57.157]]]}},{"type":"Feature","properties":{"name":"Värmland","c":2},"geometry":{"type":"Polygon","coordinates":[[[14.451,60.037],[14.456,60.002],[14.352,59.959],[14.418,59.926],[14.445,59.687],[14.482,59.584],[14.469,59.498],[14.33,59.301],[14.313,59.016],[14.227,59.045],[13.615,59.055],[13.457,58.968],[13.38,58.843],[13.446,58.76],[13.288,58.742],[12.928,58.815],[12.859,58.988],[12.786,59.052],[12.756,59.137],[12.665,59.174],[12.596,59.125],[12.256,59.215],[12.186,59.255],[12.07,59.201],[11.949,59.246],[11.812,59.25],[11.784,59.361],[11.677,59.559],[11.694,59.622],[11.828,59.66],[11.892,59.706],[11.904,59.77],[11.85,59.872],[11.942,59.902],[12.144,59.898],[12.291,59.959],[12.447,60.051],[12.511,60.118],[12.522,60.198],[12.487,60.296],[12.594,60.395],[12.594,60.515],[12.483,60.657],[12.377,60.754],[12.313,60.902],[12.256,60.981],[12.281,61.015],[12.512,61.049],[12.711,61.057],[12.756,61.001],[13.098,60.817],[13.196,60.714],[13.261,60.683],[13.528,60.447],[13.669,60.407],[13.845,60.261],[14.158,60.229],[14.257,60.107],[14.451,60.037]]]}},{"type":"Feature","properties":{"name":"Jämtland","c":3},"geometry":{"type":"Polygon","coordinates":[[[14.482,61.591],[14.296,61.6],[13.606,61.658],[13.327,61.906],[13.382,62.004],[13.285,62.047],[13.187,62.043],[13.049,62.081],[12.797,62.207],[12.315,62.272],[12.286,62.335],[12.091,62.586],[12.156,62.734],[12.104,62.923],[12.223,63.001],[11.992,63.289],[12.205,63.455],[12.17,63.598],[12.293,63.657],[12.682,63.956],[12.982,64.059],[13.234,64.091],[13.939,64.01],[13.982,64.02],[14.148,64.169],[14.161,64.205],[14.116,64.441],[13.643,64.584],[14.333,65.115],[14.341,65.112],[14.708,65.0],[14.886,64.879],[15.023,64.844],[15.112,64.757],[15.269,64.722],[15.292,64.645],[15.531,64.541],[15.639,64.473],[15.745,64.507],[15.788,64.427],[15.985,64.354],[16.085,64.263],[16.263,64.256],[16.745,64.017],[16.63,63.852],[16.592,63.737],[16.487,63.707],[16.262,63.692],[16.162,63.702],[15.938,63.664],[16.021,63.462],[16.181,63.378],[16.969,62.993],[16.658,62.922],[16.442,62.786],[16.314,62.725],[15.886,62.71],[15.609,62.653],[15.172,62.603],[14.994,62.611],[14.825,62.585],[14.871,62.482],[14.851,62.425],[15.066,62.298],[15.194,62.274],[15.359,62.282],[15.455,62.16],[15.417,62.117],[15.125,62.0],[15.126,61.851],[14.838,61.84],[14.684,61.869],[14.602,61.812],[14.482,61.591]]]}},{"type":"Feature","properties":{"name":"Norrbotten","c":1},"geometry":{"type":"Polygon","coordinates":[[[21.582,65.068],[21.266,65.164],[20.115,65.312],[19.704,65.25],[19.629,65.208],[19.403,65.162],[19.251,65.214],[19.231,65.262],[18.82,65.375],[18.701,65.442],[18.562,65.444],[18.359,65.495],[18.164,65.583],[17.781,65.657],[17.472,65.755],[16.881,66.006],[16.498,66.076],[15.863,66.276],[15.476,66.355],[15.426,66.491],[15.669,66.599],[16.039,66.888],[16.416,67.053],[16.438,67.2],[16.127,67.423],[16.2,67.508],[16.367,67.522],[16.483,67.558],[16.609,67.647],[16.762,67.877],[16.808,67.911],[17.22,68.04],[17.321,68.105],[17.895,67.97],[17.951,67.991],[18.167,68.158],[18.189,68.199],[18.136,68.396],[18.172,68.536],[18.436,68.574],[18.645,68.501],[19.038,68.506],[19.482,68.424],[19.931,68.35],[20.01,68.364],[20.246,68.477],[19.962,68.541],[20.152,68.607],[20.237,68.659],[20.357,68.805],[20.341,68.91],[20.102,69.022],[20.623,69.036],[20.935,68.967],[20.906,68.895],[21.072,68.869],[21.464,68.687],[21.919,68.568],[22.072,68.477],[22.303,68.476],[22.608,68.425],[23.052,68.298],[23.155,68.217],[23.152,68.13],[23.331,68.128],[23.383,68.051],[23.661,67.933],[23.499,67.882],[23.485,67.737],[23.554,67.587],[23.431,67.486],[23.765,67.42],[23.735,67.29],[23.622,67.269],[23.581,67.153],[23.684,67.05],[23.933,66.889],[24.001,66.812],[23.892,66.751],[23.882,66.564],[23.677,66.474],[23.642,66.436],[23.666,66.305],[23.724,66.207],[23.889,66.161],[24.02,66.049],[24.055,65.948],[24.163,65.841],[24.14,65.805],[23.957,65.789],[23.374,65.823],[23.087,65.728],[23.046,65.761],[22.837,65.808],[22.57,65.796],[22.47,65.843],[22.326,65.837],[22.361,65.761],[22.258,65.665],[22.385,65.628],[22.17,65.553],[21.9,65.501],[22.032,65.467],[21.942,65.412],[21.489,65.393],[21.702,65.286],[21.538,65.231],[21.619,65.148],[21.582,65.068]]]}},{"type":"Feature","properties":{"name":"Västernorrland","c":1},"geometry":{"type":"Polygon","coordinates":[[[19.316,63.458],[19.27,63.342],[19.157,63.319],[19.032,63.182],[18.913,63.212],[18.756,63.157],[18.611,63.179],[18.468,63.024],[18.524,62.992],[18.513,62.904],[18.4,62.842],[18.268,62.883],[18.146,62.822],[18.055,62.853],[17.926,62.822],[17.921,62.916],[17.848,62.921],[18.003,62.709],[17.975,62.657],[18.042,62.592],[17.909,62.549],[17.862,62.501],[17.693,62.498],[17.576,62.44],[17.438,62.537],[17.341,62.498],[17.347,62.403],[17.393,62.328],[17.547,62.249],[17.499,62.148],[17.21,62.178],[17.011,62.18],[16.488,62.251],[16.209,62.261],[15.627,62.355],[15.53,62.349],[15.359,62.282],[15.194,62.274],[15.066,62.298],[14.851,62.425],[14.871,62.482],[14.825,62.585],[14.994,62.611],[15.172,62.603],[15.609,62.653],[15.886,62.71],[16.314,62.725],[16.442,62.786],[16.658,62.922],[16.969,62.993],[16.181,63.378],[16.021,63.462],[15.938,63.664],[16.162,63.702],[16.262,63.692],[16.487,63.707],[16.592,63.737],[16.63,63.852],[16.745,64.017],[16.902,63.96],[17.73,63.889],[18.362,63.983],[18.521,63.852],[18.676,63.833],[18.956,63.77],[19.206,63.594],[19.316,63.458]]]}},{"type":"Feature","properties":{"name":"Västerbotten","c":2},"geometry":{"type":"Polygon","coordinates":[[[21.582,65.068],[21.467,65.055],[21.378,64.96],[21.256,64.957],[21.181,64.836],[21.229,64.748],[21.312,64.699],[21.245,64.622],[21.374,64.608],[21.463,64.548],[21.49,64.487],[21.606,64.452],[21.457,64.372],[21.244,64.307],[21.117,64.221],[20.967,64.149],[20.897,63.984],[20.688,63.799],[20.503,63.822],[20.419,63.759],[20.317,63.74],[20.308,63.654],[20.074,63.666],[19.88,63.599],[19.753,63.524],[19.772,63.465],[19.687,63.431],[19.579,63.521],[19.455,63.509],[19.316,63.458],[19.206,63.594],[18.956,63.77],[18.676,63.833],[18.521,63.852],[18.362,63.983],[17.73,63.889],[16.902,63.96],[16.745,64.017],[16.263,64.256],[16.085,64.263],[15.985,64.354],[15.788,64.427],[15.745,64.507],[15.639,64.473],[15.531,64.541],[15.292,64.645],[15.269,64.722],[15.112,64.757],[15.023,64.844],[14.886,64.879],[14.708,65.0],[14.341,65.112],[14.338,65.123],[14.366,65.216],[14.514,65.318],[14.51,65.465],[14.561,65.701],[14.637,65.781],[14.644,65.843],[14.541,66.125],[15.053,66.153],[15.482,66.275],[15.476,66.355],[15.863,66.276],[16.498,66.076],[16.881,66.006],[17.472,65.755],[17.781,65.657],[18.164,65.583],[18.359,65.495],[18.562,65.444],[18.701,65.442],[18.82,65.375],[19.231,65.262],[19.251,65.214],[19.403,65.162],[19.629,65.208],[19.704,65.25],[20.115,65.312],[21.266,65.164],[21.582,65.068]]]}},{"type":"Feature","properties":{"name":"Gotland","c":3},"geometry":{"type":"MultiPolygon","coordinates":[[[[18.784,57.84],[18.898,57.898],[18.996,57.912],[19.085,57.826],[18.958,57.785],[18.941,57.73],[18.81,57.71],[18.765,57.627],[18.81,57.607],[18.761,57.508],[18.79,57.449],[18.909,57.439],[18.93,57.405],[18.77,57.364],[18.667,57.297],[18.714,57.243],[18.591,57.219],[18.431,57.154],[18.345,57.083],[18.358,56.99],[18.204,56.915],[18.228,57.134],[18.16,57.23],[18.099,57.259],[18.179,57.38],[18.112,57.511],[18.161,57.578],[18.325,57.673],[18.463,57.803],[18.595,57.831],[18.658,57.902],[18.742,57.918],[18.784,57.84]]],[[[19.222,57.99],[19.131,57.852],[19.037,57.905],[19.087,57.968],[19.222,57.99]]]]}},{"type":"Feature","properties":{"name":"Stockholm","c":1},"geometry":{"type":"Polygon","coordinates":[[[17.586,58.965],[17.386,58.998],[17.285,59.227],[17.342,59.325],[17.444,59.385],[17.522,59.454],[17.594,59.58],[17.582,59.666],[17.673,59.709],[17.781,59.692],[18.009,59.752],[18.09,59.753],[18.153,59.813],[18.39,59.882],[18.461,60.043],[18.555,60.121],[18.651,60.148],[18.824,60.068],[18.903,59.947],[19.072,59.896],[19.068,59.834],[18.924,59.852],[18.862,59.803],[19.085,59.772],[19.036,59.729],[18.901,59.735],[18.781,59.702],[18.687,59.606],[18.277,59.423],[18.146,59.444],[18.042,59.397],[18.173,59.327],[18.318,59.376],[18.482,59.348],[18.485,59.434],[18.612,59.375],[18.62,59.308],[18.364,59.307],[18.279,59.262],[18.393,59.176],[18.043,59.06],[17.931,58.91],[17.749,58.924],[17.761,59.037],[17.632,59.018],[17.586,58.965]]]}},{"type":"Feature","properties":{"name":"Uppsala","c":3},"geometry":{"type":"Polygon","coordinates":[[[18.555,60.121],[18.461,60.043],[18.39,59.882],[18.153,59.813],[18.09,59.753],[18.009,59.752],[17.781,59.692],[17.673,59.709],[17.582,59.666],[17.594,59.58],[17.522,59.454],[17.444,59.385],[17.245,59.5],[17.148,59.527],[16.966,59.532],[16.9,59.669],[16.797,59.785],[16.859,59.884],[17.05,59.839],[17.181,59.885],[17.211,60.042],[17.288,60.059],[17.386,60.201],[17.369,60.251],[17.226,60.31],[17.217,60.385],[17.316,60.486],[17.377,60.624],[17.575,60.648],[17.638,60.515],[17.816,60.585],[17.919,60.6],[17.967,60.519],[18.098,60.465],[18.278,60.349],[18.428,60.349],[18.401,60.26],[18.42,60.194],[18.555,60.121]]]}},{"type":"Feature","properties":{"name":"Blekinge","c":2},"geometry":{"type":"Polygon","coordinates":[[[16.066,56.336],[16.038,56.255],[15.932,56.175],[15.852,56.086],[15.731,56.157],[15.573,56.206],[15.493,56.176],[15.049,56.154],[14.953,56.173],[14.725,56.168],[14.686,56.147],[14.768,56.031],[14.716,56.002],[14.612,56.011],[14.553,56.054],[14.587,56.155],[14.542,56.239],[14.45,56.265],[14.414,56.346],[14.541,56.477],[14.725,56.402],[14.915,56.382],[14.996,56.447],[15.104,56.463],[15.216,56.443],[15.247,56.467],[15.343,56.469],[15.363,56.482],[15.597,56.502],[15.8,56.375],[15.98,56.326],[16.066,56.336]]]}},{"type":"Feature","properties":{"name":"Västra Götaland","c":1},"geometry":{"type":"MultiPolygon","coordinates":[[[[11.739,58.059],[11.732,57.998],[11.595,57.936],[11.528,57.954],[11.525,58.051],[11.739,58.059]]],[[[11.789,58.246],[11.805,58.126],[11.708,58.098],[11.585,58.123],[11.516,58.086],[11.407,58.131],[11.588,58.233],[11.789,58.246]]],[[[14.812,58.646],[14.429,58.224],[14.237,58.002],[14.212,57.916],[14.045,57.864],[13.751,57.853],[13.767,57.781],[13.724,57.72],[13.683,57.565],[13.542,57.436],[13.413,57.355],[13.315,57.317],[13.117,57.157],[12.953,57.2],[12.944,57.278],[12.748,57.303],[12.595,57.351],[12.515,57.298],[12.434,57.306],[12.393,57.384],[12.416,57.436],[12.337,57.491],[12.302,57.616],[12.069,57.573],[11.913,57.583],[11.845,57.683],[11.706,57.722],[11.752,57.785],[11.694,57.881],[11.803,58.037],[11.783,58.069],[11.876,58.199],[11.807,58.327],[11.727,58.327],[11.567,58.249],[11.497,58.258],[11.382,58.354],[11.225,58.371],[11.258,58.482],[11.25,58.649],[11.179,58.736],[11.232,58.8],[11.19,58.908],[11.108,58.954],[11.129,59.031],[11.22,59.09],[11.355,59.092],[11.453,58.96],[11.452,58.896],[11.547,58.885],[11.664,58.92],[11.811,59.249],[11.949,59.246],[12.07,59.201],[12.186,59.255],[12.256,59.215],[12.596,59.125],[12.665,59.174],[12.756,59.137],[12.786,59.052],[12.859,58.988],[12.928,58.815],[13.288,58.742],[13.446,58.76],[13.38,58.843],[13.457,58.968],[13.615,59.055],[14.227,59.045],[14.313,59.016],[14.41,58.845],[14.521,58.728],[14.695,58.734],[14.812,58.646]]]]}},{"type":"Feature","properties":{"name":"Skåne","c":1},"geometry":{"type":"Polygon","coordinates":[[[14.541,56.477],[14.414,56.346],[14.45,56.265],[14.542,56.239],[14.587,56.155],[14.553,56.054],[14.346,55.953],[14.209,55.821],[14.196,55.726],[14.358,55.564],[14.363,55.524],[14.181,55.391],[14.094,55.387],[13.882,55.433],[13.63,55.418],[13.381,55.346],[13.281,55.345],[13.0,55.4],[12.928,55.52],[12.929,55.579],[13.027,55.627],[13.061,55.674],[13.011,55.728],[12.923,55.749],[12.926,55.834],[12.821,55.887],[12.752,55.997],[12.61,56.117],[12.505,56.275],[12.646,56.257],[12.705,56.222],[12.834,56.266],[12.732,56.36],[12.622,56.419],[12.714,56.467],[12.833,56.443],[12.911,56.474],[12.976,56.444],[13.016,56.371],[13.231,56.343],[13.391,56.419],[13.501,56.424],[13.577,56.424],[13.993,56.479],[14.095,56.541],[14.278,56.524],[14.541,56.477]]]}}]};
+
+    const mapData = [
+      {
+        producer: "Nynäshamns Ångbryggeri",
+        lat: 58.9036,
+        lng: 17.9497,
+        city: "Nynäshamn",
+        county: "Stockholm County",
+        website: "https://www.nyab.se/",
+        color: "#6e9a6e",
+        products: [
+          {
+            name: "Landsort Lager",
+            category: "Beer, Pale lager",
+            price: "33.50 SEK",
+            volume: "500 ml",
+            abv: "5.3%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/266756/266756_400.png",
+            url: "https://www.systembolaget.se/produkt/ol/landsort-lager-146601/",
+            taste: "Malty, nuanced flavor with notes of crispbread, orange, honey, herbs, and straw.",
+            suitable: "Traditional Swedish home cooking, Light meat, Social drink",
+            allergens: "Barley malt"
+          },
+          {
+            name: "Kalkskär Källaröl",
+            category: "Beer, Unfiltered Kellerbier",
+            price: "33.50 SEK",
+            volume: "500 ml",
+            abv: "4.6%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/13953747/13953747_400.png",
+            url: "https://www.systembolaget.se/produkt/ol/kalkskar-kallarol-1138601/",
+            taste: "Malty, unfiltered flavor with notes of crispbread, herbs, honey, and citrus.",
+            suitable: "Traditional Swedish home cooking, Open-faced sandwiches",
+            allergens: "Barley malt"
+          },
+          {
+            name: "Stenstrand Sommar Ale",
+            category: "Beer, American Pale Ale (APA)",
+            price: "38.00 SEK",
+            volume: "500 ml",
+            abv: "6.8%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/63864919/63864919_400.png",
+            url: "https://www.systembolaget.se/produkt/ol/nynashamns-3470701/",
+            taste: "Nuanced, fruity flavor with clear bitterness, notes of grapefruit, mango, apricot, and pine resin.",
+            suitable: "Burgers, Flavorful pork or lamb dishes, BBQ",
+            allergens: "Barley malt"
+          },
+          {
+            name: "Indianviken Pale Ale",
+            category: "Beer, India Pale Ale (IPA)",
+            price: "36.60 SEK",
+            volume: "500 ml",
+            abv: "6.2%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/216802/216802_400.png",
+            url: "https://www.systembolaget.se/produkt/ol/indianviken-7225601/",
+            taste: "Malty, balanced flavor with clear hop bitterness, notes of apricot, sourdough bread, and orange peel.",
+            suitable: "Traditional home cooking, Flavorful meat dishes, Hard cheeses",
+            allergens: "Barley malt"
+          }
+        ]
+      },
+      {
+        producer: "Spendrups Bryggeri",
+        lat: 60.0667,
+        lng: 15.0833,
+        city: "Grängesberg",
+        county: "Dalarna County",
+        website: "https://www.spendrups.se/",
+        color: "#7fa3c9",
+        products: [
+          {
+            name: "Lazy Estate Sparkling Tea",
+            category: "Non-alcoholic Sparkling tea",
+            price: "75.00 SEK",
+            volume: "750 ml",
+            abv: "Alcohol-free",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/24554125/24554125_400.png",
+            url: "https://www.systembolaget.se/produkt/alkoholfritt/lazy-estate-sparkling-tea-198801/",
+            taste: "Fruity, slightly floral flavor with mild sweetness, notes of apples, mint, peach, bergamot, green tea, and lemon.",
+            suitable: "Aperitif, Social drink, Fish dishes, Light meat",
+            allergens: "Contains no known allergens"
+          }
+        ]
+      },
+      {
+        producer: "IDUNN Norsjö Wine & Co",
+        lat: 64.9122,
+        lng: 19.4794,
+        city: "Norsjö",
+        county: "Västerbotten County",
+        website: "https://www.facebook.com/idunnwine/",
+        color: "#b4708f",
+        products: [
+          {
+            name: "Rålund (Classic Dry Blueberry)",
+            category: "Dry fruit wine",
+            price: "199.00 SEK",
+            volume: "750 ml",
+            abv: "12.5%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/17407796/17407796_400.png",
+            url: "https://www.systembolaget.se/produkt/vin/ralund-3335301/",
+            taste: "Berry-forward, nuanced, balanced flavor with notes of blueberry, wild raspberry, vanilla, and mint.",
+            suitable: "Dark meat dishes, Game, Hard cheeses",
+            allergens: "Sulfites"
+          },
+          {
+            name: "Bergskär (Lingonberry)",
+            category: "Dry fruit wine",
+            price: "199.00 SEK",
+            volume: "750 ml",
+            abv: "12.0%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/24014580/24014580_400.png",
+            url: "https://www.systembolaget.se/produkt/vin/bergskar-7069701/",
+            taste: "Crisp, very berry-forward flavor with noticeable freshness, notes of lingonberries, redcurrants, and herbs.",
+            suitable: "Game, Rich/fatty foods, Classic Swedish meatballs with cream sauce",
+            allergens: "Sulfites"
+          }
+        ]
+      },
+      {
+        producer: "Hällåkra Vingård",
+        lat: 55.4411,
+        lng: 13.4358,
+        city: "Trelleborg",
+        county: "Skåne County",
+        website: "https://www.hallakra.com/",
+        color: "#b05f6b",
+        products: [
+          {
+            name: "Rubin",
+            category: "Red wine, Fruity & Flavorful",
+            price: "260.00 SEK",
+            volume: "750 ml",
+            abv: "8.5%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/58722022/58722022_400.png",
+            url: "https://www.systembolaget.se/produkt/vin/rubin-3372401/",
+            taste: "Fruity flavor with oak character, notes of blackcurrants, violet, cherry, chocolate, lingonberry, and vanilla.",
+            suitable: "Light meat, Poultry, Flavorful vegetarian dishes",
+            allergens: "Sulfites"
+          }
+        ]
+      },
+      {
+        producer: "Arilds Vingård",
+        lat: 56.2706,
+        lng: 12.5744,
+        city: "Höganäs",
+        county: "Skåne County",
+        website: "https://arildsvingard.se/",
+        color: "#5f9aa8",
+        products: [
+          {
+            name: "Solaris Muscaris",
+            category: "White wine, Fresh & Fruity",
+            price: "186.00 SEK",
+            volume: "750 ml",
+            abv: "11.0%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/24486955/24486955_400.png",
+            url: "https://www.systembolaget.se/produkt/vin/arilds-vingard-3488701/",
+            taste: "Aromatic, very fresh flavor with notes of green apples, gooseberries, elderflower, almond, and citrus.",
+            suitable: "Fish dishes, Shellfish, Salads",
+            allergens: "Sulfites"
+          },
+          {
+            name: "Arilds Vingård Bubbel",
+            category: "Sparkling wine, White Dry",
+            price: "230.00 SEK",
+            volume: "750 ml",
+            abv: "11.0%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/17407757/17407757_400.png",
+            url: "https://www.systembolaget.se/produkt/vin/arilds-vingard-bubbel-3334601/",
+            taste: "Fruity, very fresh flavor with notes of elderflower, yellow apples, biscuits, mineral, and lemon.",
+            suitable: "Shellfish, Fish appetizers, Aperitif",
+            allergens: "Sulfites"
+          }
+        ]
+      },
+      {
+        producer: "Åhus Vingård",
+        lat: 55.9322,
+        lng: 14.2858,
+        city: "Kristianstad",
+        county: "Skåne County",
+        website: "https://ahusvingard.se/",
+        color: "#d0916a",
+        products: [
+          {
+            name: "Åhus Jubilee",
+            category: "Red wine, Soft & Berry-forward",
+            price: "268.00 SEK",
+            volume: "750 ml",
+            abv: "10.5%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/54168182/54168182_400.png",
+            url: "https://www.systembolaget.se/produkt/vin/ahus-3416301/",
+            taste: "Nuanced, berry-forward flavor with notes of oak, cherry, redcurrants, nougat, blood orange, and herbs.",
+            suitable: "Poultry, Pork, Vegetarian dishes",
+            allergens: "Sulfites"
+          }
+        ]
+      },
+      {
+        producer: "Vingården i Klagshamn",
+        lat: 55.5186,
+        lng: 12.9353,
+        city: "Malmö",
+        county: "Skåne County",
+        website: "https://vingardeniklagshamn.se/",
+        color: "#8e76a8",
+        products: [
+          {
+            name: "Vega",
+            category: "Red wine, Spicy & Full-bodied",
+            price: "292.00 SEK",
+            volume: "750 ml",
+            abv: "12.5%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/63912660/63912660_400.png",
+            url: "https://www.systembolaget.se/produkt/vin/vingarden-i-klagshamn-3496001/",
+            taste: "Spicy flavor with notes of oak, redcurrants, lingonberries, butterscotch, herbs, and cinnamon.",
+            suitable: "Roasted/fried meat, Game dishes, Stews",
+            allergens: "Sulfites"
+          }
+        ]
+      },
+      {
+        producer: "Håks Gård",
+        lat: 56.4428,
+        lng: 16.3939,
+        city: "Mörbylånga",
+        county: "Kalmar County",
+        website: "https://www.haksgard.se/",
+        color: "#c2a24a",
+        products: [
+          {
+            name: "Under Ölands Sol Solaris",
+            category: "White wine, Fresh & Fruity",
+            price: "235.00 SEK",
+            volume: "750 ml",
+            abv: "12.5%",
+            imageUrl: "https://product-cdn.systembolaget.se/productimages/63211646/63211646_400.png",
+            url: "https://www.systembolaget.se/produkt/vin/haks-gard-3275501/",
+            taste: "Youthful, fruity, very fresh flavor with notes of green apples, fresh herbs, whitecurrants, lemon, and gooseberries.",
+            suitable: "Fish and shellfish, Salads, Goat cheese",
+            allergens: "Sulfites"
+          }
+        ]
+      }
+    ];
+
+    const SEA = '#cfe4ec';
+    const LAND = '#e4e6d0';   // countries beyond Sweden: quiet linen, so the quilt reads first
+    // Everything that must agree with the geography underneath — the counties and the
+    // stakes — is pinned to this one height. Raising anything higher throws it off its
+    // real spot: at 0.07 the Skåne stakes rendered ~55px out to sea.
+    const SURFACE = 0.006;
+
+    // The quilt. Index = the data's four-colour value, so touching län never match.
+    const QUILT = {
+      1: { calm: '#cfe0c6', deep: '#a9c79c' },  // sage
+      2: { calm: '#f3d6da', deep: '#e5aeb8' },  // blush
+      3: { calm: '#d3e3f2', deep: '#a9c7e4' },  // sky
+      4: { calm: '#f6e8c2', deep: '#ead38b' }   // butter
+    };
+
+    const countyKey = name => name.replace(/ County$/, '');
+    const producingCounties = new Set(mapData.map(d => countyKey(d.county)));
+    const producersIn = name => mapData.filter(d => countyKey(d.county) === name);
+    const quilt = f => QUILT[f.properties.c] || QUILT[1];
+
+    // Sweden's national outline, derived from the county quilt itself so it lines up exactly.
+    // An edge shared by two counties is internal; an edge belonging to just one is on the
+    // coastline or land border. Collect those single-use edges and chain them into loops —
+    // one big mainland ring plus Gotland, Öland and the archipelago islands. Drawn darker and
+    // just above the fill, this reads as a border around the whole country while the interior
+    // county lines stay pale.
+    function nationalOutline(features) {
+      const pk = p => p[0] + ',' + p[1];
+      const eKey = (a, b) => (a < b ? a + ';' + b : b + ';' + a);
+      const count = new Map();
+      const rings = [];
+      features.forEach(f => {
+        const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+        polys.forEach(poly => rings.push(poly[0]));   // exterior ring of each part
+      });
+      rings.forEach(ring => {
+        for (let i = 0; i < ring.length - 1; i++) {
+          const k = eKey(pk(ring[i]), pk(ring[i + 1]));
+          count.set(k, (count.get(k) || 0) + 1);
+        }
+      });
+      const adj = new Map(), coord = new Map();
+      const link = (a, b) => { (adj.get(a) || adj.set(a, []).get(a)).push(b); };
+      rings.forEach(ring => {
+        for (let i = 0; i < ring.length - 1; i++) {
+          const A = ring[i], B = ring[i + 1], a = pk(A), b = pk(B);
+          if (count.get(eKey(a, b)) === 1) {
+            coord.set(a, A); coord.set(b, B);
+            link(a, b); link(b, a);
+          }
+        }
+      });
+      const used = new Set(), paths = [];
+      for (const start of adj.keys()) {
+        while (adj.get(start).some(n => !used.has(eKey(start, n)))) {
+          const path = [];
+          let node = start;
+          path.push(coord.get(node));
+          while (true) {
+            const next = adj.get(node).find(n => !used.has(eKey(node, n)));
+            if (!next) break;
+            used.add(eKey(node, next));
+            path.push(coord.get(next));
+            node = next;
+            if (node === start) break;
+          }
+          if (path.length > 1) paths.push(path.map(p => [p[1], p[0]]));   // [lat, lng]
+        }
+      }
+      return paths;
+    }
+    const SWEDEN_OUTLINE = nationalOutline(SWEDEN_LAN.features);
+
+    // Every bottle sits just off its own coast, on the shortest leader that reaches water.
+    //
+    // The heading is found by asking the map, not by guessing: cast rays from the producer and
+    // take the one that leaves Sweden soonest and has the least land along it. That keeps each
+    // label hard against its own län, keeps the leader off the quilt, and — since every
+    // producer heads for its nearest shore — rings the bottles naturally around the coast.
+    // Aiming "away from the county centre" instead ignored where the water actually is and
+    // dragged leaders across the country.
+    // Bottles from one producer belong together, so they ride out on a single shared leader and
+    // pack into a small cluster at the end of it. Fanning them across a wide arc instead read as
+    // four unrelated pins scattered over the Baltic rather than one brewery's range.
+    const CELL_W = 43;          // one bottle's slot in the cluster grid (card + gap)
+    const CELL_H = 58;
+    const GAP = 8;              // breathing room between the coast and the cluster's edge
+
+    // A fixed reference point, to read the rest of the map against.
+    const HOME = { lat: 59.1041, lng: 18.0141, label: 'Tungelsta' };
+
+    // Ray-casting point-in-country, with a bounding box round each län so a miss costs nothing.
+    const LAN_BOXES = SWEDEN_LAN.features.map(f => {
+      const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+      const rings = polys.map(p => p[0]);
+      let x0 = 180, y0 = 90, x1 = -180, y1 = -90;
+      rings.forEach(r => r.forEach(([lng, lat]) => {
+        if (lng < x0) x0 = lng; if (lng > x1) x1 = lng;
+        if (lat < y0) y0 = lat; if (lat > y1) y1 = lat;
+      }));
+      return { x0, y0, x1, y1, rings };
+    });
+    const inRing = (lng, lat, ring) => {
+      let inside = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i], [xj, yj] = ring[j];
+        if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+      }
+      return inside;
+    };
+    const onLand = (lng, lat) => LAN_BOXES.some(b =>
+      lng >= b.x0 && lng <= b.x1 && lat >= b.y0 && lat <= b.y1 && b.rings.some(r => inRing(lng, lat, r)));
+
+    // The shortest way out to open water. BUFFER stops a ray "escaping" through a narrow
+    // strait it would immediately re-enter — without it, Håks Gård would hop the Kalmarsund
+    // and land back on the mainland.
+    const RAYS = 72, RAY_STEP = 0.04, RAY_MAX = 3.0, BUFFER = 0.4;
+    function escapeHeading(producer) {
+      let best = null;
+      for (let i = 0; i < RAYS; i++) {
+        const a = (2 * Math.PI * i) / RAYS;
+        const vx = Math.cos(a), vy = Math.sin(a);
+        let clear = null, land = 0;
+        for (let d = 0; d <= RAY_MAX; d += RAY_STEP) {
+          const lat = producer.lat + vy * d;
+          const lng = producer.lng + (vx * d) / Math.cos((lat * Math.PI) / 180);
+          if (onLand(lng, lat)) { land++; if (clear !== null && d - clear < BUFFER) clear = null; }
+          else if (clear === null) clear = d;
+        }
+        if (clear === null) continue;
+        // Nearest water wins; ties go to the ray with the least land under it (the open sea).
+        if (!best || clear < best.clear - 1e-9 || (Math.abs(clear - best.clear) < 1e-9 && land < best.land)) {
+          best = { x: vx, y: vy, clear, land };
+        }
+      }
+      return best || { x: 0, y: -1, clear: 0.5, land: 0 };
+    }
+
+    // One pin per product. A producer's bottles share a stake, a heading and a leader, and
+    // differ only by their slot in the cluster grid — squarish, so four beers read as a block
+    // rather than a line: 1 stays single, 2 sit side by side, 4 make a 2x2.
+    const pinData = [];
+    const clusters = mapData.map(producer => {
+      const esc = escapeHeading(producer);
+      const dir = { x: esc.x, y: esc.y };
+      const n = producer.products.length;
+      const cols = Math.ceil(Math.sqrt(n));
+      const rows = Math.ceil(n / cols);
+      const pins = producer.products.map((product, i) => {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const inRow = Math.min(cols, n - row * cols);   // centre a short last row
+        const pin = {
+          lat: producer.lat,
+          lng: producer.lng,
+          product,
+          producer,
+          gx: (col - (inRow - 1) / 2) * CELL_W,   // slot offset from the cluster's centre
+          gy: (row - (rows - 1) / 2) * CELL_H,
+          isLead: i === 0                          // only this one draws the shared leader
+        };
+        pinData.push(pin);
+        return pin;
+      });
+      return {
+        producer, pins, dir,
+        lat: producer.lat,
+        lng: producer.lng,
+        clearDeg: esc.clear,     // how far to open water along that heading
+        extraLead: 0,            // only what the collision resolver had to add
+        nudge: 0,
+        boxW: cols * CELL_W,     // the whole cluster's footprint, for collision checks
+        boxH: rows * CELL_H
+      };
+    });
+
+    // Added after the clusters are built, so it never joins the fan-out: no heading, no leader,
+    // no grid slot. It just marks the spot.
+    const homePin = { lat: HOME.lat, lng: HOME.lng, isHome: true };
+    pinData.push(homePin);
+
+    let hoveredLan = null;
+
+    const globe = Globe()(document.getElementById('globeViz'))
+      .backgroundColor('rgba(0,0,0,0)')   // let the linen gradient behind the canvas show
+      .showAtmosphere(true)
+      .atmosphereColor('#f0d9df')         // blush haze, like evening light through a hedge
+      .atmosphereAltitude(0.18)
+
+      .polygonsData(SWEDEN_LAN.features)
+      // Sit the quilt just clear of the sphere — enough to beat z-fighting, no more. Height
+      // costs accuracy under perspective: anything lifted off the surface is projected away
+      // from the centre of the view, so a raised county slides off the coastline beneath it.
+      // Hovering deepens the colour instead of lifting, which would slide it sideways.
+      .polygonAltitude(() => SURFACE)
+      .polygonCapColor(f => {
+        const q = quilt(f);
+        if (f === hoveredLan) return q.deep;
+        return producingCounties.has(f.properties.name) ? q.deep : q.calm;
+      })
+      .polygonSideColor(f => quilt(f).deep)
+      .polygonStrokeColor(() => '#fffdf8')
+      .polygonsTransitionDuration(200)
+      .polygonLabel(f => {
+        const here = producersIn(f.properties.name);
+        return `<div class="lan-tip">
+                  <strong>${f.properties.name} län</strong>
+                  <span>${here.length ? here.map(p => p.producer).join(' · ') : 'No producers tonight'}</span>
+                </div>`;
+      })
+      .onPolygonHover(f => {
+        hoveredLan = f;
+        globe.polygonCapColor(globe.polygonCapColor());
+      })
+
+      // Dark national border, sitting a hair above the quilt so it draws on top of the pale
+      // interior county lines.
+      .pathsData(SWEDEN_OUTLINE)
+      .pathPoints(d => d)
+      .pathPointLat(p => p[0])
+      .pathPointLng(p => p[1])
+      .pathPointAlt(SURFACE + 0.0015)
+      .pathColor(() => '#2c3a2f')
+      .pathStroke(0.7)
+      .pathTransitionDuration(0)
+
+      .htmlElementsData(pinData)
+      .htmlLat('lat')
+      .htmlLng('lng')
+      .htmlAltitude(SURFACE)   // same height as the quilt, so stakes land on their county
+      .htmlElementVisibilityModifier((el, isVisible) => {
+        // Hide markers round the back of the globe. Pointer-events go through the .is-hidden
+        // class, not inline styles, which would override the CSS rules above.
+        el.style.opacity = isVisible ? 1 : 0;
+        el.classList.toggle('is-hidden', !isVisible);
+      })
+      .htmlElement(d => {
+        if (d.isHome) {
+          // The one marker that stays put: it's the reference point, so it sits on its own spot
+          // with no leader and nothing to fan out to.
+          const el = document.createElement('div');
+          el.className = 'pin home';
+          el.title = `${HOME.label} — home`;
+          el.innerHTML = `
+            <div class="pin-scale">
+              <div class="home-mark">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 10.4 12 3l9 7.4" />
+                  <path d="M5.6 9.4V20h12.8V9.4" />
+                  <path d="M10 20v-5.4h4V20" />
+                </svg>
+              </div>
+              <div class="home-label">${HOME.label}</div>
+            </div>`;
+          d.el = el;
+          return el;
+        }
+        const el = document.createElement('div');
+        el.className = 'pin';
+        el.title = `${d.product.name} — ${d.producer.producer}`;
+        el.innerHTML = `
+          <div class="pin-scale" style="--c:${d.producer.color}">
+            <div class="leader"></div>
+            <div class="pin-card">
+              <img src="${d.product.imageUrl}" alt="${d.product.name}"
+                   onerror="this.style.display='none'" />
+            </div>
+            <div class="pin-dot"></div>
+          </div>`;
+        el.onclick = () => {
+          globe.pointOfView({ lat: d.producer.lat, lng: d.producer.lng, altitude: 0.3 }, 1200);
+          selectProduct(d.producer, d.product);
+        };
+        d.el = el;
+        return el;
+      });
+
+    globe.controls().autoRotate = false;
+    // Centred south of Sweden's middle: the bottles all throw outward, and the southern
+    // producers need room below the country to throw into.
+    globe.pointOfView({ lat: 61.0, lng: 16.5, altitude: 0.44 }, 0);
+
+    const HOME_ALT = 0.44;    // the altitude the marker sizes are drawn for
+    const PIN_ALT = SURFACE;
+    const PROBE = 0.9;        // degrees along the outward vector, just to read its screen angle
+
+    let leadsResolved = false;
+
+    // Aiming each cluster outward isn't enough on its own: Hällåkra and Klagshamn sit ~11px
+    // apart on screen and both throw south, so their bottles would land on each other. Walk a
+    // ladder of longer leaders and small angle nudges until each cluster finds clear air,
+    // taking the header and jump bar as obstacles too. A whole cluster moves as one unit, so
+    // a producer's bottles stay together. Resolved once, at the home view — clusters and the
+    // gaps between stakes both scale with the zoom, so a clear layout stays clear.
+    function resolveClusters(stakes) {
+      const obstacles = ['header', '.jump'].map(s => document.querySelector(s).getBoundingClientRect());
+      // Keep the bottles off the home marker too — it's the reference point, so it wants to
+      // stay legible. Nynäshamn's stake is only ~23km away, close enough to matter.
+      const h = globe.getScreenCoords(HOME.lat, HOME.lng, PIN_ALT);
+      obstacles.push({ left: h.x - 26, right: h.x + 26, top: h.y - 18, bottom: h.y + 30 });
+      const placed = [];
+      const hits = (a, b) => Math.min(a.right, b.right) > Math.max(a.left, b.left) &&
+                             Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top);
+      const boxAt = (s, ang, extra, c) => {
+        const r = leadFor(s, c, ang, 1) + extra;
+        const cx = s.x + Math.cos(ang) * r;
+        const cy = s.y + Math.sin(ang) * r;
+        return { left: cx - c.boxW / 2, right: cx + c.boxW / 2, top: cy - c.boxH / 2, bottom: cy + c.boxH / 2 };
+      };
+      // A longer leader is no good if it throws the bottle off the edge of the map.
+      const onScreen = b => b.left > 8 && b.top > 8 && b.right < window.innerWidth - 8 && b.bottom < window.innerHeight - 8;
+
+      // Would this candidate drop the cluster back onto the country? Rotate the geographic
+      // heading by the same amount the screen angle was nudged (screen y runs down, so a
+      // clockwise nudge on screen is a clockwise bearing), walk out the leader's length, and
+      // ask the map. This is what lets the ladder rotate freely without beaching a bottle.
+      const overWater = (s, c, nudge, extra) => {
+        const d = (leadFor(s, c, s.ang + nudge, 1) + extra) / (s.pxPerDeg || 1);
+        const gx = c.dir.x * Math.cos(nudge) + c.dir.y * Math.sin(nudge);
+        const gy = -c.dir.x * Math.sin(nudge) + c.dir.y * Math.cos(nudge);
+        const lat = c.lat + gy * d;
+        const lng = c.lng + (gx * d) / Math.cos((lat * Math.PI) / 180);
+        return !onLand(lng, lat);
+      };
+
+      // Rotating around the coast keeps a bottle hard against its own län; lengthening the
+      // leader drags it out to sea. So try swinging along the shore first and only reach for a
+      // longer leader once every angle is taken — otherwise Klagshamn, which collides with
+      // Arilds along the same NNW line, gets flung 400km into the Kattegat.
+      // The long tail matters on a landscape phone, where a squat viewport shrinks Sweden until
+      // the stakes almost touch and no amount of rotating alone will separate the clusters.
+      const LADDER = [
+        [0, 0], [14, 0], [-14, 0], [28, 0], [-28, 0], [0, 14], [14, 14], [-14, 14],
+        [42, 0], [-42, 0], [28, 16], [-28, 16], [56, 0], [-56, 0], [0, 34], [42, 20], [-42, 20],
+        [70, 0], [-70, 0], [56, 24], [-56, 24], [0, 58], [90, 10], [-90, 10], [0, 88],
+        [90, 40], [-90, 40], [0, 120], [60, 90], [-60, 90], [120, 40], [-120, 40], [0, 160]
+      ];
+
+      clusters.forEach((c, i) => {
+        const s = stakes[i];
+        let choice = null;
+        let fallback = null;
+        for (const [nudgeDeg, extra] of LADDER) {
+          const nudge = (nudgeDeg * Math.PI) / 180;
+          const box = boxAt(s, s.ang + nudge, extra, c);
+          if (!onScreen(box)) continue;
+          if (!overWater(s, c, nudge, extra)) continue;   // never beach a bottle
+          if (!fallback) fallback = { nudge, extra, box };   // fits and is wet, may still clash
+          if (![...placed, ...obstacles].some(b => hits(box, b))) {
+            choice = { nudge, extra, box };
+            break;
+          }
+        }
+        choice = choice || fallback || { nudge: 0, extra: 0, box: boxAt(s, s.ang, 0, c) };
+        c.extraLead = choice.extra;   // only what was needed on top of "just off the coast"
+        c.nudge = choice.nudge;
+        placed.push(choice.box);
+      });
+    }
+
+    // Just far enough to clear the shore and stand the cluster off it: the distance to open
+    // water, plus the cluster's own reach in that direction, plus a small gap. Because the
+    // water distance is measured on screen it tracks the zoom by itself — the bottles stay
+    // pinned just off their coast at every scale, with no separate spread factor.
+    //
+    // But only chase a coast the viewer can actually see. Zoom deep into an inland county —
+    // Dalarna, where the Lazy Estate tea comes from — and the nearest water is far outside the
+    // frame; hauling the bottle that way would strand it against the edge of a view with no
+    // water and no border in it. So once the coast is further than we'd reach, ease the bottle
+    // back in until it simply sits on the land beside its own county, which reads fine when
+    // there's no shoreline on screen to respect. The ramp is continuous at the hand-over, so
+    // bottles glide in as you zoom rather than snapping.
+    const REACH_FRAC = 0.30;   // of the smaller screen edge: how far we'll go to find water
+    function leadFor(s, c, ang, kSize) {
+      const support = Math.abs(Math.cos(ang)) * (c.boxW / 2) * kSize +
+                      Math.abs(Math.sin(ang)) * (c.boxH / 2) * kSize;
+      const reach = Math.min(window.innerWidth, window.innerHeight) * REACH_FRAC;
+      let clear = s.clearPx;
+      if (clear > reach) {
+        const over = (clear - reach) / reach;          // 0 at the hand-over, 1 when twice as far
+        clear = reach * Math.max(0, 1 - over);         // ...by which point we've given up on water
+      }
+      return clear + support + GAP;
+    }
+
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+    function placeMarkers() {
+      const alt = globe.pointOfView().altitude;
+      // How much the map has grown/shrunk versus the home view. Size and spread ride separate
+      // curves on this so a zoomed-in county stays legible:
+      //   spread grows FASTER than the map  -> bottles are flung past the county's edges
+      //   size   grows SLOWER than the map   -> bottles take up less of the enlarged county
+      const ratio = HOME_ALT / alt;
+      // Only the bottles' size rides a curve now. The leader length comes from the measured
+      // distance to water, which already scales with the zoom, so bottles hug their coast at
+      // every scale instead of being flung outward by a separate factor.
+      const kSize = clamp(Math.pow(ratio, 0.35), 0.78, 1.35);
+      document.documentElement.style.setProperty('--ksize', kSize.toFixed(3));
+
+      const stakes = clusters.map(c => {
+        if (!c.pins.every(p => p.el)) return null;
+        const stake = globe.getScreenCoords(c.lat, c.lng, PIN_ALT);
+        const cosLat = Math.cos((c.lat * Math.PI) / 180) || 1;
+        const at = deg => globe.getScreenCoords(
+          c.lat + c.dir.y * deg,
+          c.lng + (c.dir.x * deg) / cosLat,
+          PIN_ALT
+        );
+        // Read the heading off the screen, so a cluster keeps pointing at its water even after
+        // the globe is spun, and measure how far that water is in pixels at this zoom.
+        const out = at(PROBE);
+        const water = c.clearDeg > 0 ? at(c.clearDeg) : stake;
+        return {
+          x: stake.x,
+          y: stake.y,
+          ang: Math.atan2(out.y - stake.y, out.x - stake.x),
+          clearPx: Math.hypot(water.x - stake.x, water.y - stake.y),
+          pxPerDeg: Math.hypot(out.x - stake.x, out.y - stake.y) / PROBE
+        };
+      });
+
+      if (!leadsResolved && stakes.every(Boolean)) {
+        resolveClusters(stakes);
+        leadsResolved = true;
+      }
+
+      clusters.forEach((c, i) => {
+        const s = stakes[i];
+        if (!s) return;
+        const ang = s.ang + (c.nudge || 0);
+        const r = leadFor(s, c, ang, kSize) + (c.extraLead || 0);   // just off its own shore
+        let ax = Math.cos(ang) * r;                   // cluster centre, relative to the stake
+        let ay = Math.sin(ang) * r;
+
+        // The spread is measured in pixels, so on a phone a deep zoom throws whole clusters
+        // off the edges and clips them. Where the stake itself is in view, keep its bottles in
+        // view: hold the cluster inside the frame and let the leader stretch to wherever it
+        // lands. Small screens then ring their bottles around the edge instead of losing them;
+        // on a roomy desktop this never binds. Clusters whose stake is off-screen are left
+        // alone, so a far-off producer isn't dragged into the frame by its leash.
+        const halfW = (c.boxW / 2) * kSize + 6;
+        const halfH = (c.boxH / 2) * kSize + 6;
+        if (s.x > 0 && s.x < window.innerWidth && s.y > 0 && s.y < window.innerHeight) {
+          ax = clamp(s.x + ax, halfW, window.innerWidth - halfW) - s.x;
+          ay = clamp(s.y + ay, halfH, window.innerHeight - halfH) - s.y;
+        }
+        const leadR = Math.hypot(ax, ay);
+        const leadA = Math.atan2(ay, ax);             // leader follows the cluster's real spot
+
+        c.pins.forEach(p => {
+          const st = p.el.style;
+          // Grid slots scale with the bottles themselves, so the cluster stays packed at any zoom.
+          st.setProperty('--dx', `${(ax + p.gx * kSize).toFixed(1)}px`);
+          st.setProperty('--dy', `${(ay + p.gy * kSize).toFixed(1)}px`);
+          st.setProperty('--a', `${((leadA * 180) / Math.PI).toFixed(2)}deg`);
+          st.setProperty('--r', p.isLead ? `${leadR.toFixed(1)}px` : '0px');   // one leader per producer
+        });
+      });
+    }
+
+    let queued = false;
+    function scheduleMarkers() {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; placeMarkers(); });
+    }
+    globe.controls().addEventListener('change', scheduleMarkers);
+    window.addEventListener('resize', scheduleMarkers);
+
+    // The globe builds the marker elements on its own schedule, and the camera never moves on
+    // its own, so there's no first 'change' to lean on: wait for the elements, then place.
+    (function whenMarkersExist() {
+      if (pinData.every(d => d.el)) placeMarkers();
+      else requestAnimationFrame(whenMarkersExist);
+    })();
+
+    // Porcelain, not photography: flatten the lighting so the pastels stay true instead of
+    // falling into a hard day/night terminator.
+    globe.lights().forEach(l => {
+      if (l.type === 'AmbientLight') l.intensity = 4.4;
+      if (l.type === 'DirectionalLight') { l.intensity = 0.75; l.position.set(1, 1, 1); }
+    });
+
+    paintGlobe();
+
+    // Repaint the globe as a two-tone garden object: duck-egg water, linen land. three-globe
+    // has already loaded the water mask as the globe texture, so redraw that image through a
+    // canvas and hand the same texture its new picture.
+    function paintGlobe() {
+      const mat = globe.globeMaterial();
+      const Color = mat.emissive.constructor;
+      mat.color = new Color(SEA);   // fallback if the mask never arrives: a plain duck-egg sphere
+      mat.shininess = 4;            // matte, like glazed earthenware
+      mat.needsUpdate = true;
+
+      globe.globeImageUrl('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-water.png');
+
+      const ready = setInterval(() => {
+        const tex = globe.globeMaterial().map;
+        const img = tex && tex.image;
+        if (!img || !img.width) return;
+        clearInterval(ready);
+        try {
+          recolour(tex, img);
+          globe.globeMaterial().color = new Color(0xffffff);
+          globe.globeMaterial().needsUpdate = true;
+        } catch (err) {
+          // Tainted canvas or a mask we can't read: keep the flat duck-egg sphere.
+          globe.globeMaterial().map = null;
+          globe.globeMaterial().color = new Color(SEA);
+          globe.globeMaterial().needsUpdate = true;
+        }
+      }, 120);
+    }
+
+    function recolour(tex, img) {
+      const cv = document.createElement('canvas');
+      cv.width = img.width;
+      cv.height = img.height;
+      const ctx = cv.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0);
+      const frame = ctx.getImageData(0, 0, cv.width, cv.height);
+      const d = frame.data;
+
+      const at = (lng, lat) => {
+        const x = Math.round(((lng + 180) / 360) * cv.width);
+        const y = Math.round(((90 - lat) / 180) * cv.height);
+        return d[(y * cv.width + x) * 4];
+      };
+      // Don't assume which way the mask runs — ask it. Mid-Pacific is water; the Sahara isn't.
+      const water = at(-140, 0);
+      const earth = at(15, 23);
+      if (Math.abs(water - earth) < 30) throw new Error('unreadable mask');
+      const waterIsBright = water > earth;
+      const mid = (water + earth) / 2;
+
+      const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+      const sea = rgb(SEA);
+      const land = rgb(LAND);
+
+      for (let i = 0; i < d.length; i += 4) {
+        const isSea = waterIsBright ? d[i] > mid : d[i] < mid;
+        const c = isSea ? sea : land;
+        d[i] = c[0];
+        d[i + 1] = c[1];
+        d[i + 2] = c[2];
+        d[i + 3] = 255;
+      }
+      ctx.putImageData(frame, 0, 0);
+      tex.image = cv;
+      tex.needsUpdate = true;
+    }
+
+    // One route for every selection, whether the click came from a bottle on the map or a row
+    // in the list, so the two can't disagree about what's picked.
+    function selectProduct(producerObj, product) {
+      showSidebarFor(producerObj, product);
+      pinData.forEach(p => {
+        if (p.el && !p.isHome) p.el.classList.toggle('is-active', p.product === product);
+      });
+    }
+
+    function showSidebarFor(producerObj, activeProduct) {
+      const sidebar = document.getElementById('infoSidebar');
+      const content = document.getElementById('sidebarContent');
+      const tint = producerObj.color + '26';   // 15% wash of the producer's own colour
+
+      const products = producerObj.products.map(p => `
+        <div class="product ${p === activeProduct ? 'is-active' : ''}">
+          <img src="${p.imageUrl}" alt="${p.name}" onerror="this.style.display='none'" />
+          <div class="product-body">
+            <span class="kind" style="--tint:${tint}">${p.category}</span>
+            <h3>${p.name}</h3>
+            <div class="facts"><span>${p.price}</span><span>${p.volume}</span><span>${p.abv}</span></div>
+            <p class="taste">${p.taste}</p>
+            <div class="meta">
+              <div><b>Pairs with</b> · ${p.suitable}</div>
+              <div><b>Allergens</b> · ${p.allergens}</div>
+            </div>
+            <a class="link" href="${p.url}" target="_blank" rel="noopener">View on Systembolaget ↗</a>
+          </div>
+        </div>
+      `).join('');
+
+      content.innerHTML = `
+        <div style="--seal:${producerObj.color}">
+          <h2 class="producer-name">${producerObj.producer}</h2>
+          <p class="producer-place">${producerObj.city} · ${producerObj.county}</p>
+          <a class="link" href="${producerObj.website}" target="_blank" rel="noopener">Visit producer website ↗</a>
+          <hr class="rule" />
+          ${products}
+        </div>
+      `;
+
+      // With a range to choose from, the rows themselves are the picker — clicking one selects
+      // it just like clicking its bottle out on the map. A lone product is already the
+      // selection, so it gets no pointer and no false affordance.
+      if (producerObj.products.length > 1) {
+        content.querySelectorAll('.product').forEach((row, i) => {
+          const product = producerObj.products[i];
+          row.classList.add('selectable');
+          row.tabIndex = 0;
+          row.setAttribute('role', 'button');
+          row.setAttribute('aria-pressed', String(product === activeProduct));
+          const pick = () => selectProduct(producerObj, product);
+          row.addEventListener('click', pick);
+          row.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+          });
+        });
+        // The Systembolaget link sits inside a selectable row: let it open the product page
+        // instead of being swallowed as a selection.
+        content.querySelectorAll('.product a').forEach(a =>
+          a.addEventListener('click', e => e.stopPropagation()));
+      }
+
+      sidebar.classList.remove('hidden');
+    }
+
+    function closeSidebar() {
+      document.getElementById('infoSidebar').classList.add('hidden');
+      pinData.forEach(p => p.el && p.el.classList.remove('is-active'));
+    }
+
+    function focusProducer(producerName) {
+      const match = mapData.find(d => d.producer === producerName);
+      if (match) {
+        globe.pointOfView({ lat: match.lat, lng: match.lng, altitude: 0.3 }, 1500);
+        selectProduct(match, match.products[0]);
+      }
+    }
+  </script>
+</body>
+</html>
