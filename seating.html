@@ -335,29 +335,35 @@
     }
     .sheet .close:hover { background: #eef3ea; color: var(--ink); }
 
+    /* The card header is a drawn replica of the printed table-number sign:
+       cream frosted arch, "TABLE NO." embossed on the curve, a chunky sage
+       numeral straddling the flat right edge, all on a sage plinth. */
     .sign {
       text-align: center;
-      padding: 12px 0 6px;
+      padding: 14px 0 2px;
     }
-    .sign .no {
-      font-size: 0.62rem;
+    .sign-svg {
+      display: block;
+      width: 218px;
+      max-width: 68%;
+      height: auto;
+      margin: 0 auto;
+      overflow: visible;          /* let the numeral + shadows spill past the viewBox */
+    }
+    .sign-tno {
+      fill: var(--sage);
+      font-family: var(--body);
       font-weight: 700;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--sage);
+      font-size: 12.5px;
+      letter-spacing: 2.2px;
     }
-    .sign .numeral {
-      font-family: var(--display);
-      font-weight: 600;
-      font-size: 3.6rem;
-      line-height: 0.95;
-      color: var(--ink);
-      margin-top: 2px;
-    }
-    .sign .arch {
-      width: 66px; height: 1px;
-      margin: 10px auto 0;
-      background: var(--hairline);
+    .sign-num {
+      fill: var(--sage);
+      font-family: var(--body);
+      font-weight: 700;
+      font-size: 96px;
+      text-anchor: middle;
+      dominant-baseline: central;
     }
 
     .seat-list {
@@ -449,9 +455,32 @@
     <div class="grip"></div>
     <button type="button" class="close" id="sheetClose" aria-label="Close">✕</button>
     <div class="sign">
-      <div class="no">Table No.</div>
-      <div class="numeral" id="sheet-num">1</div>
-      <div class="arch"></div>
+      <svg class="sign-svg" viewBox="0 0 300 250" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="signBody" x1="0.15" y1="1" x2="0.75" y2="0">
+            <stop offset="0" stop-color="#f8f2e4"/>
+            <stop offset="1" stop-color="#e7dbbd"/>
+          </linearGradient>
+          <filter id="signSoft" x="-40%" y="-30%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a4a3d" flood-opacity="0.3"/>
+          </filter>
+          <filter id="signNum" x="-60%" y="-60%" width="220%" height="220%">
+            <feDropShadow dx="1.5" dy="3" stdDeviation="2.5" flood-color="#3a4a3d" flood-opacity="0.4"/>
+          </filter>
+        </defs>
+        <!-- sage plinth: top face + darker front lip -->
+        <rect x="60" y="214" width="166" height="11" rx="3" fill="#8aa07c"/>
+        <rect x="60" y="223" width="166" height="9" rx="3" fill="#63795b"/>
+        <!-- frosted cream quarter-arch: tall vertical right edge, the curve
+             sweeps from the rounded top-right down to the bottom-left corner -->
+        <path d="M84 214 C84 116 128 52 198 52 C205 52 208 57 208 66 L208 214 Z"
+              fill="url(#signBody)" filter="url(#signSoft)"/>
+        <!-- "TABLE NO." embossed along the inside of the curve, reading upward -->
+        <path id="signArc" d="M104 196 C101 128 132 86 190 80" fill="none"/>
+        <text class="sign-tno"><textPath href="#signArc" startOffset="2">TABLE NO.</textPath></text>
+        <!-- numeral straddling the right edge, half hanging off it (set per table) -->
+        <text id="sheet-num" class="sign-num" x="206" y="128" filter="url(#signNum)">1</text>
+      </svg>
     </div>
     <ul class="seat-list" id="sheet-seats"></ul>
     <p class="count" id="sheet-count"></p>
