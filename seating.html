@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find Your Seat — Matthew &amp; Sofia</title>
+  <meta name="description" content="Find your table in the tent — search your name and we'll show you where you're sitting.">
+  <meta name="theme-color" content="#f0e6d2">
+
+  <link rel="icon" type="image/svg+xml"
+        href="https://api.iconify.design/material-symbols/table-restaurant-outline.svg?color=%236e9a6e&width=64&height=64">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mattfalco.com/Falco-Wedding/seating.html">
+  <meta property="og:site_name" content="Matthew &amp; Sofia">
+  <meta property="og:title" content="Find Your Seat">
+  <meta property="og:description" content="Find your table in the tent — search your name and we'll show you where you're sitting.">
+  <meta property="og:locale" content="en_GB">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Find Your Seat">
+  <meta name="twitter:description" content="Find your table in the tent — search your name and we'll show you where you're sitting.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --linen: #f0e6d2;
+      --linen-deep: #ddcfb2;
+      --sea: #cfe4ec;
+      --ink: #3a4a3d;
+      --muted: #7b8874;
+      --sage: #6e9a6e;
+      --hairline: rgba(58, 74, 61, 0.14);
+      --paper: #fffdf8;
+      --display: "Cormorant Garamond", Georgia, serif;
+      --body: "Karla", ui-sans-serif, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(120% 90% at 50% 0%, #f7f0e2 0%, var(--linen) 45%, var(--linen-deep) 100%)
+        fixed;
+      font-family: var(--body);
+      color: var(--ink);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .wrap {
+      max-width: 34rem;
+      margin: 0 auto;
+      padding: 18px 14px 40px;
+    }
+
+    /* --- Home button: same pill as the other sub-pages --- */
+    .home-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      background: rgba(255, 253, 248, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      box-shadow: 0 10px 30px -18px rgba(58, 74, 61, 0.5);
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+    }
+    .home-btn:hover,
+    .home-btn:focus-visible {
+      transform: translateY(-1px);
+      color: var(--ink);
+      box-shadow: 0 6px 14px -8px rgba(58, 74, 61, 0.7);
+    }
+    .home-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    .hero { text-align: center; margin: 22px 0 16px; }
+    .hero .label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .hero h1 {
+      margin: 9px 0 0;
+      font-family: var(--display);
+      font-size: 2.3rem;
+      font-weight: 600;
+      line-height: 1.1;
+    }
+    .hero p {
+      margin: 10px auto 0;
+      max-width: 22rem;
+      font-family: var(--display);
+      font-style: italic;
+      font-size: 1.05rem;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    /* --- Search --- */
+    .search {
+      position: relative;
+      margin: 0 auto 14px;
+      max-width: 24rem;
+    }
+    .search input {
+      width: 100%;
+      padding: 12px 16px 12px 42px;
+      font-family: var(--body);
+      font-size: 1rem;
+      color: var(--ink);
+      background:
+        rgba(255, 253, 248, 0.92)
+        url("https://api.iconify.design/material-symbols/search.svg?color=%237b8874&width=22&height=22")
+        no-repeat 14px center;
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      box-shadow: 0 10px 30px -18px rgba(58, 74, 61, 0.5);
+    }
+    .search input::placeholder { color: var(--muted); }
+    .search input:focus-visible { outline: 2px solid var(--sage); outline-offset: 1px; }
+
+    .results {
+      list-style: none;
+      margin: 6px 0 0;
+      padding: 6px;
+      position: absolute;
+      z-index: 30;
+      left: 0; right: 0;
+      background: var(--paper);
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+      box-shadow: 0 18px 40px -20px rgba(58, 74, 61, 0.6);
+      max-height: 15rem;
+      overflow-y: auto;
+    }
+    .results:empty { display: none; }
+    .results li {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 12px;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+    .results li:hover,
+    .results li[aria-selected="true"] { background: #eef3ea; }
+    .results .nm { font-size: 0.95rem; font-weight: 500; }
+    .results .tb {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sage);
+      white-space: nowrap;
+    }
+    .results .none {
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      cursor: default;
+    }
+    .results .none:hover { background: none; }
+
+    /* --- Map stage --- */
+    .stage {
+      position: relative;
+      height: 66vh;
+      min-height: 380px;
+      overflow: auto;
+      background: rgba(255, 253, 248, 0.55);
+      border: 1px solid var(--hairline);
+      border-radius: 16px;
+      box-shadow: inset 0 2px 14px -10px rgba(58, 74, 61, 0.5);
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+    }
+    .stage svg {
+      display: block;
+      /* width/height set by JS zoom */
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .zoom {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .zoom button {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      font-family: var(--body);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--ink);
+      background: rgba(255, 253, 248, 0.94);
+      border: 1px solid var(--hairline);
+      border-radius: 11px;
+      box-shadow: 0 8px 20px -12px rgba(58, 74, 61, 0.7);
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+    .zoom button:active { transform: scale(0.94); }
+    .zoom button:focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
+    .zoom .reset { font-size: 0.72rem; font-weight: 700; }
+
+    .hint {
+      margin: 10px 2px 0;
+      text-align: center;
+      font-size: 0.72rem;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    /* --- SVG element classes --- */
+    .tp { cursor: pointer; }
+    .tp-body {
+      fill: var(--sea);
+      stroke: rgba(58, 74, 61, 0.28);
+      stroke-width: 1.4;
+      transition: fill 0.2s ease, stroke 0.2s ease;
+    }
+    .tp-num {
+      fill: var(--ink);
+      font-family: var(--display);
+      font-weight: 600;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    .seat-body { fill: var(--paper); stroke: var(--hairline); stroke-width: 1; }
+    .seat-txt {
+      fill: var(--ink);
+      font-family: var(--body);
+      font-weight: 500;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    .tp.is-on .tp-body { fill: #cfe0c6; stroke: var(--sage); stroke-width: 2.4; }
+    .tp.is-on .seat-body { stroke: rgba(110, 154, 110, 0.5); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+    .tp.flash .tp-body { animation: pulse 0.5s ease 3; }
+
+    .fx-tent { fill: rgba(255,253,248,0.6); stroke: rgba(58,74,61,0.30); stroke-width: 2; }
+    .fx-dance { fill: #e7e2d6; stroke: rgba(58,74,61,0.18); stroke-width: 1.2; }
+    .fx-food { fill: var(--paper); stroke: rgba(58,74,61,0.35); stroke-width: 1.5; }
+    .fx-drink { fill: #dcd8cc; stroke: rgba(58,74,61,0.22); stroke-width: 1; }
+    .fx-bench { fill: #e6eef1; stroke: var(--hairline); stroke-width: 1; }
+    .fx-entrance { fill: #8bb08b; }
+    .fx-label {
+      fill: var(--muted);
+      font-family: var(--display);
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    .fx-food-label { fill: var(--ink); font-size: 26px; }
+    .fx-drink-label {
+      fill: #5b6350;
+      font-family: var(--body);
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+
+    /* --- Detail sheet, styled like the physical TABLE NO. sign --- */
+    .sheet-scrim {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: rgba(58, 74, 61, 0.28);
+      backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+    .sheet-scrim.open { opacity: 1; pointer-events: auto; }
+
+    .sheet {
+      position: fixed;
+      z-index: 41;
+      left: 50%;
+      bottom: 0;
+      transform: translate(-50%, 100%);
+      width: min(28rem, 100%);
+      background: var(--paper);
+      border: 1px solid var(--hairline);
+      border-bottom: none;
+      border-radius: 26px 26px 0 0;
+      box-shadow: 0 -18px 50px -24px rgba(58, 74, 61, 0.7);
+      padding: 10px 22px 26px;
+      transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+      max-height: 82vh;
+      overflow-y: auto;
+    }
+    .sheet.open { transform: translate(-50%, 0); }
+    .sheet .grip {
+      width: 40px; height: 4px;
+      margin: 0 auto 4px;
+      background: var(--hairline);
+      border-radius: 2px;
+    }
+    .sheet .close {
+      position: absolute;
+      top: 12px; right: 14px;
+      width: 32px; height: 32px;
+      display: grid; place-items: center;
+      background: none; border: none;
+      font-size: 1.2rem; color: var(--muted);
+      cursor: pointer; border-radius: 999px;
+    }
+    .sheet .close:hover { background: #eef3ea; color: var(--ink); }
+
+    .sign {
+      text-align: center;
+      padding: 12px 0 6px;
+    }
+    .sign .no {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--sage);
+    }
+    .sign .numeral {
+      font-family: var(--display);
+      font-weight: 600;
+      font-size: 3.6rem;
+      line-height: 0.95;
+      color: var(--ink);
+      margin-top: 2px;
+    }
+    .sign .arch {
+      width: 66px; height: 1px;
+      margin: 10px auto 0;
+      background: var(--hairline);
+    }
+
+    .seat-list {
+      list-style: none;
+      margin: 16px 0 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .seat-list li {
+      padding: 10px 12px;
+      background: #f4f7f1;
+      border: 1px solid var(--hairline);
+      border-radius: 11px;
+      font-size: 0.95rem;
+    }
+    .seat-list li.me {
+      background: #dcecd4;
+      border-color: var(--sage);
+      font-weight: 700;
+    }
+    .seat-list li.empty { color: var(--muted); font-style: italic; grid-column: 1 / -1; text-align: center; }
+    .sheet .count {
+      margin: 14px 0 0;
+      text-align: center;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .foot {
+      margin-top: 26px;
+      text-align: center;
+      font-size: 0.68rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .foot a { color: var(--muted); }
+
+    @media (min-width: 40rem) {
+      .wrap { max-width: 42rem; }
+      .hero h1 { font-size: 2.9rem; }
+      .stage { height: 70vh; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="wrap">
+    <a class="home-btn" href="./"><span aria-hidden="true">←</span> All pages</a>
+
+    <div class="hero">
+      <div class="label">Matthew &amp; Sofia</div>
+      <h1>Find Your Seat</h1>
+      <p>Type your name below, or tap any table to see who's sitting there.</p>
+    </div>
+
+    <div class="search">
+      <input id="q" type="search" autocomplete="off" autocapitalize="off"
+             spellcheck="false" placeholder="Search your name…"
+             aria-label="Search your name" aria-controls="results" aria-expanded="false">
+      <ul class="results" id="results" role="listbox" aria-label="Matching guests"></ul>
+    </div>
+
+    <div class="stage" id="stage">
+      <svg id="map" xmlns="http://www.w3.org/2000/svg" aria-label="Seating map of the tent"></svg>
+      <div class="zoom">
+        <button type="button" id="zin" aria-label="Zoom in">+</button>
+        <button type="button" id="zout" aria-label="Zoom out">−</button>
+        <button type="button" id="zreset" class="reset" aria-label="Reset zoom">FIT</button>
+      </div>
+    </div>
+
+    <p class="hint">Pinch or use +/− to zoom · drag to move around · tap a table for the full list</p>
+
+    <div class="foot"><a href="./">← Back to all pages</a></div>
+  </main>
+
+  <div class="sheet-scrim" id="scrim"></div>
+  <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-num">
+    <div class="grip"></div>
+    <button type="button" class="close" id="sheetClose" aria-label="Close">✕</button>
+    <div class="sign">
+      <div class="no">Table No.</div>
+      <div class="numeral" id="sheet-num">1</div>
+      <div class="arch"></div>
+    </div>
+    <ul class="seat-list" id="sheet-seats"></ul>
+    <p class="count" id="sheet-count"></p>
+  </aside>
+
+  <script>
+  /* ============================================================================
+     EDIT HERE. tableSeating is the single source of truth for who sits where.
+
+     Coordinates are in METRES, origin at the tent's top-left corner:
+       x → across the tent (0 = left wall … 6.5 = right wall)
+       y → down the tent   (0 = top wall  … 12.5 = bottom wall)
+     x, y are the CENTRE of the table. w, h are its size in metres.
+     rotation is degrees (clockwise); leave 0 for the upright grid.
+
+     seats has four edges — top / bottom / left / right — each an array of names.
+     The renderer spreads each edge's names evenly along that side of the table.
+     Add, remove, rename or move names freely; reload to see it.
+     ============================================================================ */
+  const TENT = { width: 6.5, length: 12.5 };
+
+  const tableSeating = [
+    // Head table — the couple. Tall, stood on end at the far left of the middle row.
+    { id: 1, x: 1.15, y: 6.25, w: 1.0, h: 2.3, rotation: 0,
+      seats: { top: [], bottom: [], left: ["Matt", "Sofia"], right: [] } },
+
+    { id: 2, x: 1.55, y: 4.05, w: 1.9, h: 1.05, rotation: 0,
+      seats: { top: ["Matt", "Julie", "Sheldon"], bottom: ["Cathy", "Richard", "Linda"], left: [], right: [] } },
+
+    { id: 3, x: 1.55, y: 2.15, w: 1.9, h: 1.05, rotation: 0,
+      seats: { top: ["Justin", "Gayatri", "John"], bottom: ["Alan", "Ari", "Aiden"], left: [], right: [] } },
+
+    { id: 4, x: 4.95, y: 2.15, w: 1.9, h: 1.05, rotation: 0,
+      seats: { top: ["Peter", "Jeanette", "Samantha"], bottom: ["Johan", "Johanna"], left: [], right: [] } },
+
+    { id: 5, x: 4.95, y: 4.05, w: 1.9, h: 1.05, rotation: 0,
+      seats: { top: ["Anna", "Matilda", "Richard"], bottom: ["JT", "Hannes", "Katrina"], left: [], right: [] } },
+
+    { id: 6, x: 4.95, y: 8.55, w: 1.9, h: 1.05, rotation: 0,
+      seats: { top: ["Priscila", "Issa", "Jennie"], bottom: ["Nick", "Ricardo", "Kim"], left: ["Mariana"], right: ["Robin"] } },
+
+    { id: 7, x: 4.95, y: 10.45, w: 1.9, h: 1.05, rotation: 0,
+      seats: { top: ["Samme", "Louise", "Kamilla"], bottom: ["Ida", "Edvin", "Otto", "Ava"], left: ["Martin"], right: ["Stefan"] } },
+
+    { id: 8, x: 1.55, y: 10.45, w: 1.9, h: 1.05, rotation: 0,
+      seats: { top: ["Barnvakt", "Oliver", "Anna J"], bottom: ["Niklas", "Nora", "Ester", "Siv"], left: ["Elliot"], right: ["Oscar"] } },
+
+    { id: 9, x: 1.55, y: 8.55, w: 1.9, h: 1.05, rotation: 0,
+      seats: { top: ["Anna A", "Ethel", "Gabrielle"], bottom: ["Ville", "David", "Alexander"], left: [], right: [] } },
+  ];
+
+  /* Room features — not seats, just context. Also editable. */
+  const fixtures = [
+    { type: "dance",    shape: "circle", x: 3.35, y: 6.25, r: 1.15, label: "Dance floor" },
+    { type: "food",     shape: "rect",   x: 5.15, y: 6.25, w: 2.2, h: 1.5, label: "Food" },
+    { type: "drink",    shape: "rect",   x: 5.7,  y: 0.7,  w: 1.0, h: 0.4, rotation: -58, label: "DRYCK" },
+    { type: "drink",    shape: "rect",   x: 4.6,  y: 12.0, w: 1.0, h: 0.4, rotation: -42, label: "DRYCK" },
+    { type: "bench",    shape: "rect",   x: 2.05, y: 6.25, w: 0.32, h: 2.0, rotation: 0 },
+    { type: "bench",    shape: "rect",   x: 6.15, y: 1.0,  w: 0.5, h: 0.32, rotation: 0 },
+    { type: "bench",    shape: "rect",   x: 6.2,  y: 3.4,  w: 0.32, h: 0.9, rotation: 0 },
+    { type: "entrance", shape: "dot",    x: 6.35, y: 5.3 },
+    { type: "entrance", shape: "dot",    x: 6.35, y: 7.4 },
+  ];
+
+  /* ============================================================================
+     Renderer + interactions. No need to edit below this line for seating changes.
+     ============================================================================ */
+  const SCALE = 100;          // svg units per metre
+  const MARGIN = 0.4;         // metres of breathing room around the tent
+  const VBW = (TENT.width + MARGIN * 2) * SCALE;
+  const VBH = (TENT.length + MARGIN * 2) * SCALE;
+  const SVGNS = "http://www.w3.org/2000/svg";
+
+  // metre → svg unit, offset so the tent's top-left sits at (0,0) inside the margin
+  const mx = m => (m + MARGIN) * SCALE;
+  const my = m => (m + MARGIN) * SCALE;
+  const ms = m => m * SCALE;
+
+  const SEAT_W = 0.66, SEAT_H = 0.36, SEAT_GAP = 0.05;
+
+  function el(tag, attrs, kids) {
+    const n = document.createElementNS(SVGNS, tag);
+    for (const k in (attrs || {})) n.setAttribute(k, attrs[k]);
+    for (const c of (kids || [])) n.appendChild(c);
+    return n;
+  }
+  function fit(textNode, str, maxW) {
+    // shrink font until the label fits the card width; returns chosen px size
+    let size = 15;
+    const approx = s => str.length * s * 0.52;
+    while (approx(size) > maxW && size > 8) size -= 0.5;
+    textNode.setAttribute("font-size", size);
+    return size;
+  }
+
+  const svg = document.getElementById("map");
+  svg.setAttribute("viewBox", `0 0 ${VBW} ${VBH}`);
+
+  // ---- tent outline
+  svg.appendChild(el("rect", {
+    x: mx(0), y: my(0), width: ms(TENT.width), height: ms(TENT.length),
+    rx: 46, ry: 46, class: "fx-tent"
+  }));
+
+  // ---- fixtures
+  for (const f of fixtures) {
+    if (f.shape === "circle") {
+      const g = el("g");
+      g.appendChild(el("circle", { cx: mx(f.x), cy: my(f.y), r: ms(f.r), class: "fx-dance" }));
+      if (f.label) {
+        const t = el("text", { x: mx(f.x), y: my(f.y), class: "fx-label", "font-size": 20, "font-style": "italic" });
+        t.textContent = f.label;
+        g.appendChild(t);
+      }
+      svg.appendChild(g);
+    } else if (f.shape === "dot") {
+      svg.appendChild(el("circle", { cx: mx(f.x), cy: my(f.y), r: 13, class: "fx-entrance" }));
+    } else { // rect
+      const cx = mx(f.x), cy = my(f.y), w = ms(f.w), h = ms(f.h);
+      const rot = f.rotation ? `rotate(${f.rotation} ${cx} ${cy})` : null;
+      const g = el("g", rot ? { transform: rot } : null);
+      const cls = f.type === "food" ? "fx-food" : f.type === "drink" ? "fx-drink" : "fx-bench";
+      g.appendChild(el("rect", { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 7, ry: 7, class: cls }));
+      if (f.label) {
+        const lc = f.type === "food" ? "fx-food-label" : "fx-drink-label";
+        const t = el("text", { x: cx, y: cy, class: lc });
+        if (f.type !== "food") t.setAttribute("font-size", 15);
+        t.textContent = f.label;
+        g.appendChild(t);
+      }
+      svg.appendChild(g);
+    }
+  }
+
+  // ---- seat cards for one edge
+  function addSeats(g, names, edge, t) {
+    const w = ms(t.w), h = ms(t.h), cx = mx(t.x), cy = my(t.y);
+    const sw = ms(SEAT_W), sh = ms(SEAT_H), gap = ms(SEAT_GAP);
+    const n = names.length;
+    names.forEach((name, i) => {
+      let scx, scy;
+      if (edge === "top" || edge === "bottom") {
+        scx = cx - w / 2 + w * (i + 0.5) / n;
+        scy = edge === "top" ? cy - h / 2 - gap - sh / 2 : cy + h / 2 + gap + sh / 2;
+      } else {
+        scy = cy - h / 2 + h * (i + 0.5) / n;
+        scx = edge === "left" ? cx - w / 2 - gap - sw / 2 : cx + w / 2 + gap + sw / 2;
+      }
+      const seat = el("g", { "data-name": name });
+      seat.appendChild(el("rect", { x: scx - sw / 2, y: scy - sh / 2, width: sw, height: sh, rx: 6, ry: 6, class: "seat-body" }));
+      const txt = el("text", { x: scx, y: scy, class: "seat-txt" });
+      txt.textContent = name;
+      fit(txt, name, sw - 8);
+      seat.appendChild(txt);
+      g.appendChild(seat);
+    });
+  }
+
+  // ---- tables
+  const tableEls = {};
+  for (const t of tableSeating) {
+    const cx = mx(t.x), cy = my(t.y), w = ms(t.w), h = ms(t.h);
+    const rot = t.rotation ? `rotate(${t.rotation} ${cx} ${cy})` : null;
+    const g = el("g", Object.assign({ class: "tp", "data-id": t.id, role: "button", tabindex: "0" },
+                                    rot ? { transform: rot } : {}));
+    g.appendChild(el("rect", { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 10, ry: 10, class: "tp-body" }));
+    const num = el("text", { x: cx, y: cy, class: "tp-num", "font-size": Math.min(w, h) * 0.6 });
+    num.textContent = t.id;
+    g.appendChild(num);
+    for (const edge of ["top", "bottom", "left", "right"]) addSeats(g, t.seats[edge] || [], edge, t);
+    svg.appendChild(g);
+    tableEls[t.id] = g;
+
+    g.addEventListener("click", () => openSheet(t.id));
+    g.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSheet(t.id); }
+    });
+  }
+
+  /* ---------------- Zoom (CSS-size the SVG; the stage scrolls natively) --------------- */
+  const stage = document.getElementById("stage");
+  let zoom = 1, fitW = 0;
+  const ZMIN = 1, ZMAX = 5;
+
+  function computeFit() {
+    // fit the full tent to the stage: whichever axis is the binding constraint
+    const availW = stage.clientWidth - 2;
+    const availH = stage.clientHeight - 2;
+    fitW = Math.min(availW, availH * (VBW / VBH));
+  }
+  function applyZoom(focal) {
+    // focal: {x,y} client point to keep stable, optional
+    const before = focal ? {
+      sx: (stage.scrollLeft + (focal.x - stage.getBoundingClientRect().left)) / (fitW * zoom),
+      sy: (stage.scrollTop + (focal.y - stage.getBoundingClientRect().top)) / (fitW * zoom * VBH / VBW)
+    } : null;
+    const w = fitW * zoom;
+    svg.style.width = w + "px";
+    svg.style.height = (w * VBH / VBW) + "px";
+    if (before) {
+      stage.scrollLeft = before.sx * w - (focal.x - stage.getBoundingClientRect().left);
+      stage.scrollTop = before.sy * (w * VBH / VBW) - (focal.y - stage.getBoundingClientRect().top);
+    }
+  }
+  function setZoom(z, focal) {
+    zoom = Math.max(ZMIN, Math.min(ZMAX, z));
+    applyZoom(focal);
+  }
+  function relayout() { computeFit(); applyZoom(); }
+
+  document.getElementById("zin").addEventListener("click", () => setZoom(zoom * 1.4));
+  document.getElementById("zout").addEventListener("click", () => setZoom(zoom / 1.4));
+  document.getElementById("zreset").addEventListener("click", () => { setZoom(1); stage.scrollTo({ top: 0, left: 0 }); });
+
+  // desktop wheel zoom (ctrl/⌘+wheel, or plain wheel) centred on the cursor
+  stage.addEventListener("wheel", e => {
+    if (!e.ctrlKey && !e.metaKey && Math.abs(e.deltaY) < 8) return;
+    e.preventDefault();
+    setZoom(zoom * (e.deltaY < 0 ? 1.12 : 0.89), { x: e.clientX, y: e.clientY });
+  }, { passive: false });
+
+  // two-finger pinch
+  let pinch = null;
+  stage.addEventListener("touchstart", e => {
+    if (e.touches.length === 2) {
+      const [a, b] = e.touches;
+      pinch = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), z: zoom };
+    }
+  }, { passive: true });
+  stage.addEventListener("touchmove", e => {
+    if (pinch && e.touches.length === 2) {
+      e.preventDefault();
+      const [a, b] = e.touches;
+      const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      setZoom(pinch.z * (d / pinch.d), { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 });
+    }
+  }, { passive: false });
+  stage.addEventListener("touchend", e => { if (e.touches.length < 2) pinch = null; }, { passive: true });
+
+  window.addEventListener("resize", relayout);
+
+  /* ---------------- Detail sheet ---------------- */
+  const scrim = document.getElementById("scrim");
+  const sheet = document.getElementById("sheet");
+  let activeTable = null, highlightName = null;
+
+  function tableById(id) { return tableSeating.find(t => t.id === id); }
+  function allNames(t) {
+    return ["top", "bottom", "left", "right"].flatMap(e => t.seats[e] || []);
+  }
+
+  function openSheet(id, focusName) {
+    const t = tableById(id);
+    if (!t) return;
+    activeTable = id;
+    document.getElementById("sheet-num").textContent = t.id;
+    const names = allNames(t);
+    const list = document.getElementById("sheet-seats");
+    list.innerHTML = "";
+    if (names.length === 0) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "No names on this table yet";
+      list.appendChild(li);
+    } else {
+      for (const nm of names) {
+        const li = document.createElement("li");
+        li.textContent = nm;
+        if (focusName && norm(nm) === norm(focusName)) li.className = "me";
+        list.appendChild(li);
+      }
+    }
+    const cnt = document.getElementById("sheet-count");
+    cnt.textContent = names.length ? `${names.length} ${names.length === 1 ? "guest" : "guests"}` : "";
+    scrim.classList.add("open");
+    sheet.classList.add("open");
+    highlight(id);
+  }
+  function closeSheet() {
+    scrim.classList.remove("open");
+    sheet.classList.remove("open");
+    if (activeTable != null) tableEls[activeTable].classList.remove("is-on");
+    activeTable = null;
+  }
+  scrim.addEventListener("click", closeSheet);
+  document.getElementById("sheetClose").addEventListener("click", closeSheet);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
+
+  function highlight(id) {
+    for (const k in tableEls) tableEls[k].classList.remove("is-on");
+    const g = tableEls[id];
+    if (!g) return;
+    g.classList.add("is-on");
+    // bring the highlighted table into view within the stage
+    const r = g.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    const dx = (r.left + r.width / 2) - (sr.left + sr.width / 2);
+    const dy = (r.top + r.height / 2) - (sr.top + sr.height / 2);
+    stage.scrollBy({ left: dx, top: dy, behavior: "smooth" });
+    g.classList.remove("flash"); void g.offsetWidth; g.classList.add("flash");
+  }
+
+  /* ---------------- Search ---------------- */
+  const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  const nameIndex = [];
+  for (const t of tableSeating) for (const nm of allNames(t)) nameIndex.push({ name: nm, id: t.id });
+
+  const q = document.getElementById("q");
+  const results = document.getElementById("results");
+  let sel = -1;
+
+  function renderResults(items) {
+    results.innerHTML = "";
+    sel = -1;
+    if (!items) { q.setAttribute("aria-expanded", "false"); return; }
+    if (items.length === 0) {
+      const li = document.createElement("li");
+      li.className = "none";
+      li.textContent = "No matching name — check the spelling?";
+      results.appendChild(li);
+      q.setAttribute("aria-expanded", "true");
+      return;
+    }
+    items.slice(0, 12).forEach((it, i) => {
+      const li = document.createElement("li");
+      li.setAttribute("role", "option");
+      li.dataset.idx = i;
+      li.innerHTML = `<span class="nm"></span><span class="tb">Table ${it.id}</span>`;
+      li.querySelector(".nm").textContent = it.name;
+      li.addEventListener("click", () => choose(it));
+      results.appendChild(li);
+    });
+    q.setAttribute("aria-expanded", "true");
+  }
+  function choose(it) {
+    q.value = it.name;
+    results.innerHTML = "";
+    q.setAttribute("aria-expanded", "false");
+    openSheet(it.id, it.name);
+  }
+  function search(v) {
+    const term = norm(v);
+    if (!term) return renderResults(null);
+    const starts = [], contains = [];
+    for (const it of nameIndex) {
+      const n = norm(it.name);
+      if (n.startsWith(term)) starts.push(it);
+      else if (n.includes(term)) contains.push(it);
+    }
+    renderResults([...starts, ...contains]);
+  }
+  q.addEventListener("input", () => search(q.value));
+  q.addEventListener("focus", () => { if (q.value) search(q.value); });
+  q.addEventListener("keydown", e => {
+    const opts = [...results.querySelectorAll('li[role="option"]')];
+    if (e.key === "ArrowDown" && opts.length) {
+      e.preventDefault(); sel = (sel + 1) % opts.length; markSel(opts);
+    } else if (e.key === "ArrowUp" && opts.length) {
+      e.preventDefault(); sel = (sel - 1 + opts.length) % opts.length; markSel(opts);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (sel >= 0 && opts[sel]) opts[sel].click();
+      else if (opts.length) opts[0].click();
+    }
+  });
+  function markSel(opts) {
+    opts.forEach((o, i) => o.setAttribute("aria-selected", i === sel ? "true" : "false"));
+    if (opts[sel]) opts[sel].scrollIntoView({ block: "nearest" });
+  }
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".search")) { results.innerHTML = ""; q.setAttribute("aria-expanded", "false"); }
+  });
+
+  /* ---------------- Boot ---------------- */
+  relayout();
+  </script>
+</body>
+</html>
