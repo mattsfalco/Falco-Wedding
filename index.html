@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matthew &amp; Sofia — Wedding</title>
+  <meta name="description" content="Everything for the day in one place: add your photos to the shared album, meet the Swedish drinks being served, and learn the garden games.">
+  <meta name="theme-color" content="#f0e6d2">
+
+  <link rel="icon" type="image/svg+xml"
+        href="https://api.iconify.design/material-symbols/favorite.svg?color=%236e9a6e&width=64&height=64">
+
+  <!-- This page is the site's home, so og:url can finally be stated rather than guessed.
+       It must stay absolute — a relative value is silently dropped by every scraper. -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mattfalco.com/Falco-Wedding/">
+  <meta property="og:site_name" content="Matthew &amp; Sofia">
+  <meta property="og:title" content="Matthew &amp; Sofia — Wedding">
+  <meta property="og:description" content="Everything for the day in one place: add your photos to the shared album, meet the Swedish drinks being served, and learn the garden games.">
+  <meta property="og:locale" content="en_GB">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Matthew &amp; Sofia — Wedding">
+  <meta name="twitter:description" content="Everything for the day in one place: add your photos to the shared album, meet the Swedish drinks being served, and learn the garden games.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Same midsummer garden palette as the beverage map — the two pages are one site */
+      --linen: #f0e6d2;
+      --linen-deep: #ddcfb2;
+      --ink: #3a4a3d;
+      --muted: #7b8874;
+      --hairline: rgba(58, 74, 61, 0.14);
+      --paper: #fffdf8;
+      --display: "Cormorant Garamond", Georgia, serif;
+      --body: "Karla", ui-sans-serif, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      /* The map pins its gradient to a 100vh viewport; this page scrolls, so the gradient is
+         fixed instead. Without this it repaints down the scroll and the linen visibly bands. */
+      background:
+        radial-gradient(120% 90% at 50% 0%, #f7f0e2 0%, var(--linen) 45%, var(--linen-deep) 100%)
+        fixed;
+      font-family: var(--body);
+      color: var(--ink);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .wrap {
+      max-width: 34rem;
+      margin: 0 auto;
+      padding: 40px 18px 56px;
+    }
+
+    /* --- Title --- */
+    .hero { text-align: center; margin-bottom: 30px; }
+    .hero .label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .hero h1 {
+      margin: 10px 0 0;
+      font-family: var(--display);
+      font-size: 2.6rem;
+      font-weight: 600;
+      line-height: 1.1;
+      letter-spacing: 0.01em;
+    }
+    .hero .amp { font-style: italic; color: var(--muted); }
+    .hero p {
+      margin: 12px auto 0;
+      max-width: 24rem;
+      font-family: var(--display);
+      font-style: italic;
+      font-size: 1.1rem;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .rule {
+      width: 54px;
+      height: 1px;
+      margin: 26px auto 0;
+      background: var(--hairline);
+    }
+
+    /* --- Menu --- */
+    .menu {
+      display: grid;
+      gap: 14px;
+      margin-top: 30px;
+    }
+
+    /* Each tile carries its own accent through --tint/--edge/--seal, the same three-variable
+       idiom the map uses per producer. Set them inline and the rules below need no per-tile
+       overrides. */
+    .tile {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 18px 18px;
+      background: rgba(255, 253, 248, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--hairline);
+      border-left: 4px solid var(--seal);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px -18px rgba(58, 74, 61, 0.5);
+      color: inherit;
+      text-decoration: none;
+      /* Phones fire :hover on tap and leave it stuck on. Transition transform only, so a
+         stuck hover can't leave a tile permanently lifted after the tap. */
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .tile:hover,
+    .tile:focus-visible {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 34px -18px rgba(58, 74, 61, 0.66);
+    }
+    .tile:active { transform: translateY(0); }
+    .tile:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+    .tile .icon {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      font-size: 1.5rem;
+      line-height: 1;
+      background: var(--tint);
+      border: 1px solid var(--edge);
+      border-radius: 12px;
+    }
+
+    .tile .text { min-width: 0; }
+    .tile h2 {
+      margin: 0;
+      font-family: var(--display);
+      font-size: 1.4rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .tile p {
+      margin: 4px 0 0;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    /* Arrow leans right on hover — a nudge, not a slide. ↗ for links that leave the site,
+       → for pages within it, so a guest knows before tapping whether they'll come back. */
+    .tile .go {
+      flex: none;
+      margin-left: auto;
+      font-size: 1.05rem;
+      color: var(--seal);
+      transition: transform 0.15s ease;
+    }
+    .tile:hover .go { transform: translateX(2px); }
+
+    .foot {
+      margin-top: 34px;
+      text-align: center;
+      font-size: 0.68rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Mobile-first: one column is the default above. Two columns only once there's genuinely
+       room, which on this max-width means tablet and up. */
+    @media (min-width: 40rem) {
+      .wrap { max-width: 46rem; padding-top: 56px; }
+      .menu { grid-template-columns: 1fr 1fr; }
+      .hero h1 { font-size: 3.2rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="wrap">
+    <div class="hero">
+      <div class="label">Welcome to the wedding of</div>
+      <h1>Matthew <span class="amp">&amp;</span> Sofia</h1>
+      <p>Everything for the day, in one place.</p>
+      <div class="rule"></div>
+    </div>
+
+    <nav class="menu">
+
+      <a class="tile" style="--seal:#b4708f; --tint:#f6e8ea; --edge:#e8cdd4;"
+         href="https://photos.app.goo.gl/WVrAAt4Ln5VEKZf89">
+        <span class="icon" aria-hidden="true">📸</span>
+        <span class="text">
+          <h2>Photo Album</h2>
+          <p>Add your photos to the shared album — everyone's pictures, all in one place.</p>
+        </span>
+        <span class="go" aria-hidden="true">↗</span>
+      </a>
+
+      <a class="tile" style="--seal:#6e9a6e; --tint:#eaf1e4; --edge:#cfe0c6;"
+         href="wedding-alcohol.html">
+        <span class="icon" aria-hidden="true">🍷</span>
+        <span class="text">
+          <h2>Swedish Drinks</h2>
+          <p>Every bottle we're serving, mapped to the brewery or vineyard it came from.</p>
+        </span>
+        <span class="go" aria-hidden="true">→</span>
+      </a>
+
+      <a class="tile" style="--seal:#7fa3c9; --tint:#e4eef1; --edge:#c6dbe4;"
+         href="garden-games.html">
+        <span class="icon" aria-hidden="true">🎯</span>
+        <span class="text">
+          <h2>Garden Games</h2>
+          <p>Kubb, Golf Darts, Spin Ladder and Corn Hole — how to play each one.</p>
+        </span>
+        <span class="go" aria-hidden="true">→</span>
+      </a>
+
+      <a class="tile" style="--seal:#c2a24a; --tint:#f7f0dc; --edge:#e7d7a8;"
+         href="https://falco.wedding">
+        <span class="icon" aria-hidden="true">💌</span>
+        <span class="text">
+          <h2>Wedding Website</h2>
+          <p>Schedule, venue, travel and all the details — our original site.</p>
+        </span>
+        <span class="go" aria-hidden="true">↗</span>
+      </a>
+
+    </nav>
+
+    <div class="foot">Tack för att ni firar med oss</div>
+  </main>
+
+</body>
+</html>

@@ -16,10 +16,9 @@
   <!-- Share cards. The image is the direct file, not the share.google link it came from — that
        link serves an HTML results page, which a scraper can't render as a picture. It's hosted
        on scanmagazine.co.uk, so it's outside our control: if the preview ever goes blank, that
-       file has moved and wants re-hosting alongside this page.
-       og:url is deliberately absent — it must be absolute, and until this page has a home any
-       value would be a guess pointing previews at the wrong place. -->
+       file has moved and wants re-hosting alongside this page. -->
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mattfalco.com/Falco-Wedding/wedding-alcohol.html">
   <meta property="og:site_name" content="Swedish Craft Beverages">
   <meta property="og:title" content="Swedish Craft Beverages">
   <meta property="og:description" content="Learn more about the Swedish alcohol products being served tonight — every bottle mapped to the vineyard or brewery it came from.">
@@ -456,6 +455,33 @@
     }
     ::-webkit-scrollbar-thumb:hover { background: rgba(58, 74, 61, 0.32); }
 
+    /* Back to the menu. It lives inside header.card rather than as a fourth overlay child —
+       the overlay is a space-between column of exactly three (header, sidebar, jump bar), and
+       a fourth would redistribute all of them. */
+    .home-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 11px;
+      padding: 5px 12px;
+      background: var(--linen);
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+    }
+    .home-btn:hover,
+    .home-btn:focus-visible {
+      transform: translateY(-1px);
+      color: var(--ink);
+      box-shadow: 0 6px 14px -8px rgba(58, 74, 61, 0.7);
+    }
+
     @media (max-width: 720px) {
       .overlay { padding: 12px; }
       /* Sits above the jump bar rather than under it — the sheet and the chips share
@@ -478,6 +504,7 @@
       header.card { padding: 9px 14px; }
       header h1 { font-size: 1.05rem; }
       header p { display: none; }        /* supplementary — the title still carries the page */
+      .home-btn { margin-bottom: 6px; padding: 3px 10px; }
       #infoSidebar {
         top: 60px;
         bottom: 88px;
@@ -496,6 +523,7 @@
 
   <div class="overlay">
     <header class="card">
+      <a class="home-btn" href="./"><span aria-hidden="true">←</span> All pages</a>
       <h1>🇸🇪 Swedish Craft Beverages</h1>
       <p>Learn more about the Swedish alcohol products being served tonight</p>
     </header>

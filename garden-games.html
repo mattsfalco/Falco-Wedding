@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Garden Games — Matthew &amp; Sofia</title>
+  <meta name="description" content="How to play the four garden games: Kubb, Golf Darts, Spin Ladder and Corn Hole. Rules in a minute, plus a video if you'd rather watch.">
+  <meta name="theme-color" content="#f0e6d2">
+
+  <link rel="icon" type="image/svg+xml"
+        href="https://api.iconify.design/material-symbols/sports-score.svg?color=%236e9a6e&width=64&height=64">
+
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mattfalco.com/Falco-Wedding/garden-games.html">
+  <meta property="og:site_name" content="Matthew &amp; Sofia">
+  <meta property="og:title" content="Garden Games">
+  <meta property="og:description" content="How to play the four garden games: Kubb, Golf Darts, Spin Ladder and Corn Hole. Rules in a minute, plus a video if you'd rather watch.">
+  <meta property="og:locale" content="en_GB">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Garden Games">
+  <meta name="twitter:description" content="How to play the four garden games: Kubb, Golf Darts, Spin Ladder and Corn Hole. Rules in a minute, plus a video if you'd rather watch.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --linen: #f0e6d2;
+      --linen-deep: #ddcfb2;
+      --ink: #3a4a3d;
+      --muted: #7b8874;
+      --hairline: rgba(58, 74, 61, 0.14);
+      --paper: #fffdf8;
+      --display: "Cormorant Garamond", Georgia, serif;
+      --body: "Karla", ui-sans-serif, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(120% 90% at 50% 0%, #f7f0e2 0%, var(--linen) 45%, var(--linen-deep) 100%)
+        fixed;
+      font-family: var(--body);
+      color: var(--ink);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .wrap {
+      max-width: 34rem;
+      margin: 0 auto;
+      padding: 18px 18px 56px;
+    }
+
+    /* --- Home button: same pill on every sub-page --- */
+    .home-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      background: rgba(255, 253, 248, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      box-shadow: 0 10px 30px -18px rgba(58, 74, 61, 0.5);
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+    }
+    .home-btn:hover,
+    .home-btn:focus-visible {
+      transform: translateY(-1px);
+      color: var(--ink);
+      box-shadow: 0 6px 14px -8px rgba(58, 74, 61, 0.7);
+    }
+    .home-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    /* --- Title --- */
+    .hero { text-align: center; margin: 30px 0 24px; }
+    .hero .label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .hero h1 {
+      margin: 10px 0 0;
+      font-family: var(--display);
+      font-size: 2.4rem;
+      font-weight: 600;
+      line-height: 1.1;
+    }
+    .hero p {
+      margin: 12px auto 0;
+      max-width: 24rem;
+      font-family: var(--display);
+      font-style: italic;
+      font-size: 1.1rem;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    /* --- Jump bar: the map's chip idiom, sticky so it follows down a long page --- */
+    .jump {
+      position: sticky;
+      top: 10px;
+      z-index: 5;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 12px;
+      margin-bottom: 22px;
+      background: rgba(255, 253, 248, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      box-shadow: 0 10px 30px -18px rgba(58, 74, 61, 0.5);
+    }
+    .chip {
+      padding: 5px 12px;
+      background: var(--tint);
+      border: 1px solid var(--edge);
+      border-radius: 999px;
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .chip:hover,
+    .chip:focus-visible {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px -8px rgba(58, 74, 61, 0.7);
+    }
+    .chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    /* --- Game cards --- */
+    .game {
+      /* The sticky jump bar would otherwise land on top of a heading you just jumped to.
+         scroll-margin pushes the anchor down clear of it. */
+      scroll-margin-top: 68px;
+      padding: 20px 18px;
+      margin-bottom: 16px;
+      background: rgba(255, 253, 248, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--hairline);
+      border-left: 4px solid var(--seal);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px -18px rgba(58, 74, 61, 0.5);
+    }
+
+    .game-head {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+    .game-head .icon {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      line-height: 1;
+      background: var(--tint);
+      border: 1px solid var(--edge);
+      border-radius: 12px;
+    }
+    .game h2 {
+      margin: 0;
+      font-family: var(--display);
+      font-size: 1.6rem;
+      font-weight: 600;
+      line-height: 1.15;
+    }
+    .game-head .origin {
+      display: block;
+      margin-top: 2px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .gist {
+      margin: 14px 0 0;
+      font-family: var(--display);
+      font-style: italic;
+      font-size: 1.05rem;
+      line-height: 1.45;
+      color: var(--ink);
+    }
+
+    .sub {
+      margin: 18px 0 8px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .game ol,
+    .game ul {
+      margin: 0;
+      padding-left: 1.15rem;
+      font-size: 0.86rem;
+      line-height: 1.6;
+    }
+    .game li { margin-bottom: 5px; }
+    .game li::marker { color: var(--seal); font-weight: 700; }
+    .game strong { font-weight: 700; }
+
+    /* Scoring: a tinted strip, so the number you need is findable without reading the prose */
+    .score {
+      margin-top: 14px;
+      padding: 11px 13px;
+      background: var(--tint);
+      border: 1px solid var(--edge);
+      border-radius: 10px;
+      font-size: 0.82rem;
+      line-height: 1.55;
+    }
+    .score dl { margin: 0; }
+    .score .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 2px 0;
+    }
+    .score .row dt { color: var(--muted); }
+    .score .row dd { margin: 0; font-weight: 700; text-align: right; }
+    .score .win {
+      margin: 8px 0 0;
+      padding-top: 8px;
+      border-top: 1px solid var(--edge);
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .watch {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 15px;
+      padding: 8px 14px;
+      background: var(--tint);
+      border: 1px solid var(--edge);
+      border-radius: 999px;
+      color: var(--ink);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .watch:hover,
+    .watch:focus-visible {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px -8px rgba(58, 74, 61, 0.7);
+    }
+    .watch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+    .watch .dur { font-weight: 400; color: var(--muted); }
+
+    .note {
+      margin: 15px 0 0;
+      font-size: 0.74rem;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .foot {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 0.68rem;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .foot a { color: var(--muted); }
+
+    @media (min-width: 40rem) {
+      .wrap { max-width: 40rem; }
+      .hero h1 { font-size: 3rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <main class="wrap">
+
+    <a class="home-btn" href="./">
+      <span aria-hidden="true">←</span> All pages
+    </a>
+
+    <div class="hero">
+      <div class="label">Matthew &amp; Sofia</div>
+      <h1>Garden Games</h1>
+      <p>Four games on the lawn. None of them take more than a minute to learn — pick one up and play.</p>
+    </div>
+
+    <nav class="jump" aria-label="Jump to a game">
+      <a class="chip" style="--tint:#eaf1e4; --edge:#cfe0c6;" href="#kubb">Kubb</a>
+      <a class="chip" style="--tint:#f7f0dc; --edge:#e7d7a8;" href="#golf-darts">Golf Darts</a>
+      <a class="chip" style="--tint:#e4eef1; --edge:#c6dbe4;" href="#spin-ladder">Spin Ladder</a>
+      <a class="chip" style="--tint:#f6e8ea; --edge:#e8cdd4;" href="#corn-hole">Corn Hole</a>
+    </nav>
+
+    <!-- ============ KUBB ============ -->
+    <section class="game" id="kubb" style="--seal:#6e9a6e; --tint:#eaf1e4; --edge:#cfe0c6;">
+      <div class="game-head">
+        <span class="icon" aria-hidden="true">🪵</span>
+        <div>
+          <h2>Kubb</h2>
+          <span class="origin">Sweden · 2–12 players</span>
+        </div>
+      </div>
+
+      <p class="gist">Knock over their blocks with thrown batons, then topple the king. Topple the king early and you lose on the spot.</p>
+
+      <div class="sub">How to play</div>
+      <ol>
+        <li>Five <strong>kubbs</strong> (blocks) stand on each team's baseline. The <strong>king</strong> stands in the middle.</li>
+        <li>Take turns throwing your six batons <strong>underhand, end over end</strong>. No helicopter spin — that's a foul throw.</li>
+        <li>Knock over the opposition's kubbs. They then throw those felled kubbs back into <em>your</em> half and stand them up as <strong>field kubbs</strong>.</li>
+        <li>Field kubbs must be cleared <strong>before</strong> you may throw at their baseline kubbs. Hit a baseline kubb early and it doesn't count.</li>
+        <li>Leave a field kubb standing and the other team may throw from level with it — much closer. Don't leave them standing.</li>
+        <li>Clear every kubb, then knock the king with your next baton to win.</li>
+      </ol>
+
+      <div class="score">
+        <p style="margin:0 0 4px; font-weight:700;">The one rule people break</p>
+        <p style="margin:0;">Hitting the king while <em>any</em> kubb is still standing is an <strong>instant loss</strong>. The king goes last, always.</p>
+      </div>
+
+      <a class="watch" href="https://www.youtube.com/watch?v=XfWt0-_MNsY">
+        ▶ Watch: Kubb Rules <span class="dur">· 3:39</span>
+      </a>
+    </section>
+
+    <!-- ============ GOLF DARTS ============ -->
+    <section class="game" id="golf-darts" style="--seal:#c2a24a; --tint:#f7f0dc; --edge:#e7d7a8;">
+      <div class="game-head">
+        <span class="icon" aria-hidden="true">⛳</span>
+        <div>
+          <h2>Golf Darts</h2>
+          <span class="origin">Darts, but you chip · any number</span>
+        </div>
+      </div>
+
+      <p class="gist">Chip a golf ball at a giant dartboard. It sticks where it lands. That's your score.</p>
+
+      <div class="sub">How to play</div>
+      <ol>
+        <li>Chip from the mat at the board. Wherever the ball sticks is what you scored.</li>
+        <li>It's a <strong>real dartboard</strong>: the outer ring doubles that number, the inner ring trebles it.</li>
+        <li>Miss the board entirely and you score nothing. No re-throws.</li>
+        <li>Five balls each, highest total wins. Tie? Nearest the bullseye takes it.</li>
+      </ol>
+
+      <div class="score">
+        <dl>
+          <div class="row"><dt>Outer ring</dt><dd>Double</dd></div>
+          <div class="row"><dt>Inner ring</dt><dd>Treble</dd></div>
+          <div class="row"><dt>Outer bull (green)</dt><dd>25</dd></div>
+          <div class="row"><dt>Bullseye (red)</dt><dd>50</dd></div>
+        </dl>
+        <p class="win">Feeling serious? Play proper <strong>301</strong> — start on 301 and subtract each shot, first to land exactly zero wins.</p>
+      </div>
+
+      <p class="note">No video for this one — there isn't a good one, because there's no special ruleset. It's ordinary darts scoring with a wedge instead of an arrow. Chip gently; full swings send balls into the hedge.</p>
+    </section>
+
+    <!-- ============ SPIN LADDER ============ -->
+    <section class="game" id="spin-ladder" style="--seal:#7fa3c9; --tint:#e4eef1; --edge:#c6dbe4;">
+      <div class="game-head">
+        <span class="icon" aria-hidden="true">🪜</span>
+        <div>
+          <h2>Spin Ladder</h2>
+          <span class="origin">Ladder Toss · 2–4 players</span>
+        </div>
+      </div>
+
+      <p class="gist">Two balls on a string. Throw them at a ladder and hope they wrap round a rung.</p>
+
+      <div class="sub">How to play</div>
+      <ol>
+        <li>Stand roughly <strong>five paces</strong> back from the ladder.</li>
+        <li>Throw your three <strong>bolas</strong> (the ball-and-rope pairs) underarm, one at a time.</li>
+        <li>A bola scores if it's still hanging on a rung once everyone has thrown — knocked off later by someone else's throw means it doesn't count.</li>
+        <li>Bouncing off the ground first is completely legal, and often the best way in.</li>
+      </ol>
+
+      <div class="score">
+        <dl>
+          <div class="row"><dt>Top rung</dt><dd>3 points</dd></div>
+          <div class="row"><dt>Middle rung</dt><dd>2 points</dd></div>
+          <div class="row"><dt>Bottom rung</dt><dd>1 point</dd></div>
+        </dl>
+        <p class="win">First to <strong>exactly 21</strong>. Go over and the whole round scores nothing — so late on, aim low deliberately.</p>
+      </div>
+
+      <a class="watch" href="https://www.youtube.com/watch?v=Fnaw8IEnHOk">
+        ▶ Watch: How To Play Ladder Ball <span class="dur">· 3:00</span>
+      </a>
+    </section>
+
+    <!-- ============ CORN HOLE ============ -->
+    <section class="game" id="corn-hole" style="--seal:#b4708f; --tint:#f6e8ea; --edge:#e8cdd4;">
+      <div class="game-head">
+        <span class="icon" aria-hidden="true">🌽</span>
+        <div>
+          <h2>Corn Hole</h2>
+          <span class="origin">USA · 2 or 4 players</span>
+        </div>
+      </div>
+
+      <p class="gist">Bean bags at an angled board. In the hole is three, on the board is one.</p>
+
+      <div class="sub">How to play</div>
+      <ol>
+        <li>Two boards face each other about <strong>eight metres</strong> apart. Throw underarm, four bags each.</li>
+        <li>Players alternate throws — you don't throw all four at once.</li>
+        <li>A bag that lands on the board and slides in still counts as <strong>in the hole</strong>. A bag that touches the ground first scores nothing, even if it ends up on the board — take it off.</li>
+        <li>Score the round, then throw back the other way.</li>
+      </ol>
+
+      <div class="score">
+        <dl>
+          <div class="row"><dt>In the hole</dt><dd>3 points</dd></div>
+          <div class="row"><dt>On the board</dt><dd>1 point</dd></div>
+          <div class="row"><dt>On the ground</dt><dd>0</dd></div>
+        </dl>
+        <p class="win"><strong>Cancellation scoring:</strong> only the difference counts. 7 against 5 scores you 2, not 7. First to <strong>21</strong> — every crowd plays the bust rule differently, so agree on it before you start.</p>
+      </div>
+
+      <a class="watch" href="https://www.youtube.com/watch?v=Jk-eGSWvPK4">
+        ▶ Watch: The Rules of Cornhole <span class="dur">· 4:56</span>
+      </a>
+    </section>
+
+    <div class="foot">
+      <a href="./">← Back to all pages</a>
+    </div>
+
+  </main>
+
+</body>
+</html>
