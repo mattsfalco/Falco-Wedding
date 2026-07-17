@@ -183,6 +183,11 @@
       .wrap { max-width: 46rem; padding-top: 56px; }
       .menu { grid-template-columns: 1fr 1fr; }
       .hero h1 { font-size: 3.2rem; }
+
+      /* Odd tile count would strand the last one in a half-empty row. Span it instead, so the
+         grid ends on a deliberate full-width line rather than a gap. Keyed on :nth-child(odd)
+         so it self-corrects when a sixth page joins — this menu is still growing. */
+      .tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -208,6 +213,16 @@
         <span class="text">
           <h2>Photo Album</h2>
           <p>Add your photos to the shared album — everyone's pictures, all in one place.</p>
+        </span>
+        <span class="go" aria-hidden="true">↗</span>
+      </a>
+
+      <a class="tile" style="--seal:#8e76a8; --tint:#eeeaf5; --edge:#d8cfe6;"
+         href="https://www.facebook.com/groups/861014763432836">
+        <span class="icon" aria-hidden="true">💬</span>
+        <span class="text">
+          <h2>Guest Group</h2>
+          <p>Our Facebook group — plans, questions and everyone in one thread.</p>
         </span>
         <span class="go" aria-hidden="true">↗</span>
       </a>
