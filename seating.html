@@ -241,13 +241,7 @@
       stroke-width: 1.4;
       transition: fill 0.2s ease, stroke 0.2s ease;
     }
-    .tp-num {
-      fill: #4f7a50;                 /* the sage 3mf numeral, deepened to read on the blue table */
-      font-family: var(--body);
-      font-weight: 700;
-      text-anchor: middle;
-      dominant-baseline: central;
-    }
+    .tp-sign { overflow: visible; }
     .seat-body { fill: var(--paper); stroke: var(--hairline); stroke-width: 1; }
     .seat-txt {
       fill: var(--ink);
@@ -450,37 +444,28 @@
     <div class="foot"><a href="./">← Back to all pages</a></div>
   </main>
 
+  <!-- Shared sign artwork defs, referenced by both the map markers and the card -->
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="signBody" x1="0.15" y1="1" x2="0.75" y2="0">
+        <stop offset="0" stop-color="#f8f2e4"/>
+        <stop offset="1" stop-color="#e7dbbd"/>
+      </linearGradient>
+      <filter id="signSoft" x="-40%" y="-30%" width="180%" height="180%">
+        <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a4a3d" flood-opacity="0.3"/>
+      </filter>
+      <filter id="signNum" x="-60%" y="-60%" width="220%" height="220%">
+        <feDropShadow dx="1.5" dy="3" stdDeviation="2.5" flood-color="#3a4a3d" flood-opacity="0.4"/>
+      </filter>
+    </defs>
+  </svg>
+
   <div class="sheet-scrim" id="scrim"></div>
-  <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-num">
+  <aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Table details">
     <div class="grip"></div>
     <button type="button" class="close" id="sheetClose" aria-label="Close">✕</button>
     <div class="sign">
-      <svg class="sign-svg" viewBox="0 0 300 250" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <defs>
-          <linearGradient id="signBody" x1="0.15" y1="1" x2="0.75" y2="0">
-            <stop offset="0" stop-color="#f8f2e4"/>
-            <stop offset="1" stop-color="#e7dbbd"/>
-          </linearGradient>
-          <filter id="signSoft" x="-40%" y="-30%" width="180%" height="180%">
-            <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#3a4a3d" flood-opacity="0.3"/>
-          </filter>
-          <filter id="signNum" x="-60%" y="-60%" width="220%" height="220%">
-            <feDropShadow dx="1.5" dy="3" stdDeviation="2.5" flood-color="#3a4a3d" flood-opacity="0.4"/>
-          </filter>
-        </defs>
-        <!-- sage plinth: top face + darker front lip -->
-        <rect x="60" y="214" width="166" height="11" rx="3" fill="#8aa07c"/>
-        <rect x="60" y="223" width="166" height="9" rx="3" fill="#63795b"/>
-        <!-- frosted cream quarter-arch: tall vertical right edge, the curve
-             sweeps from the rounded top-right down to the bottom-left corner -->
-        <path d="M84 214 C84 116 128 52 198 52 C205 52 208 57 208 66 L208 214 Z"
-              fill="url(#signBody)" filter="url(#signSoft)"/>
-        <!-- "TABLE NO." embossed along the inside of the curve, reading upward -->
-        <path id="signArc" d="M104 196 C101 128 132 86 190 80" fill="none"/>
-        <text class="sign-tno"><textPath href="#signArc" startOffset="2">TABLE NO.</textPath></text>
-        <!-- numeral straddling the right edge, half hanging off it (set per table) -->
-        <text id="sheet-num" class="sign-num" x="206" y="128" filter="url(#signNum)">1</text>
-      </svg>
+      <svg class="sign-svg" id="cardSign" viewBox="0 0 300 250" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
     </div>
     <ul class="seat-list" id="sheet-seats"></ul>
     <p class="count" id="sheet-count"></p>
@@ -588,6 +573,30 @@
     };
   }
 
+  // The printed table-number sign, drawn in a 0..300 × 0..250 space. Used both
+  // as the map marker (small, one per table) and the detail-card header (large),
+  // so the two are literally the same graphic. `uid` keeps the arc path id unique
+  // per copy; the gradient/filter defs are shared (defined once in the HTML).
+  function signShapes(number, uid) {
+    const arcId = "signarc-" + uid;
+    const shapes = [];
+    shapes.push(el("rect", { x: 60, y: 214, width: 166, height: 11, rx: 3, fill: "#8aa07c" }));
+    shapes.push(el("rect", { x: 60, y: 223, width: 166, height: 9, rx: 3, fill: "#63795b" }));
+    shapes.push(el("path", { d: "M84 214 C84 116 128 52 198 52 C205 52 208 57 208 66 L208 214 Z", fill: "url(#signBody)", filter: "url(#signSoft)" }));
+    shapes.push(el("path", { id: arcId, d: "M104 196 C101 128 132 86 190 80", fill: "none" }));
+    const tno = el("text", { class: "sign-tno" });
+    const tp = el("textPath", { startOffset: "2" });
+    tp.setAttribute("href", "#" + arcId);
+    tp.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "#" + arcId);
+    tp.textContent = "TABLE NO.";
+    tno.appendChild(tp);
+    shapes.push(tno);
+    const num = el("text", { class: "sign-num", x: 206, y: 128, filter: "url(#signNum)" });
+    num.textContent = number;
+    shapes.push(num);
+    return shapes;
+  }
+
   const svg = document.getElementById("map");
   svg.setAttribute("viewBox", `0 0 ${VBW} ${VBH}`);
 
@@ -669,9 +678,16 @@
     const g = el("g", Object.assign({ class: "tp", "data-id": t.id, role: "button", tabindex: "0" },
                                     rot ? { transform: rot } : {}));
     g.appendChild(el("rect", { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: 10, ry: 10, class: "tp-body" }));
-    const num = el("text", { x: cx, y: cy, class: "tp-num", "font-size": Math.min(w, h) * 0.62 });
-    num.textContent = t.id;
-    g.appendChild(num);
+    // the table-number sign itself as the marker, scaled to sit inside the box
+    const pad = ms(0.08);
+    const sign = el("svg", {
+      class: "tp-sign",
+      x: cx - w / 2 + pad, y: cy - h / 2 + pad,
+      width: Math.max(0, w - pad * 2), height: Math.max(0, h - pad * 2),
+      viewBox: "58 44 194 194", preserveAspectRatio: "xMidYMid meet"
+    });
+    signShapes(t.id, "m" + t.id).forEach(s => sign.appendChild(s));
+    g.appendChild(sign);
     for (const edge of ["top", "bottom", "left", "right"]) addSeats(g, t.seats[edge] || [], edge, cx, cy, w, h);
     svg.appendChild(g);
     tableEls[t.id] = g;
@@ -765,7 +781,8 @@
     const t = tableById(id);
     if (!t) return;
     activeTable = id;
-    document.getElementById("sheet-num").textContent = t.id;
+    document.getElementById("cardSign").replaceChildren(...signShapes(t.id, "card"));
+    sheet.setAttribute("aria-label", "Table " + t.id);
     const names = allNames(t);
     const list = document.getElementById("sheet-seats");
     list.innerHTML = "";
