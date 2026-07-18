@@ -177,6 +177,9 @@
     .results .none:hover { background: none; }
 
     /* --- Map stage --- */
+    /* The stage scrolls; the zoom controls live in this non-scrolling wrapper so
+       they stay pinned to the visible corner instead of scrolling off with the map. */
+    .stage-wrap { position: relative; }
     .stage {
       position: relative;
       height: 66vh;
@@ -430,8 +433,10 @@
       <ul class="results" id="results" role="listbox" aria-label="Matching guests"></ul>
     </div>
 
-    <div class="stage" id="stage">
-      <svg id="map" xmlns="http://www.w3.org/2000/svg" aria-label="Seating map of the tent"></svg>
+    <div class="stage-wrap">
+      <div class="stage" id="stage">
+        <svg id="map" xmlns="http://www.w3.org/2000/svg" aria-label="Seating map of the tent"></svg>
+      </div>
       <div class="zoom">
         <button type="button" id="zin" aria-label="Zoom in">+</button>
         <button type="button" id="zout" aria-label="Zoom out">−</button>
