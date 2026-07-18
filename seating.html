@@ -194,6 +194,7 @@
     }
     .stage svg {
       display: block;
+      margin: 0 auto;          /* centre horizontally when the map is narrower than the stage (desktop) */
       /* width/height set by JS zoom */
       user-select: none;
       -webkit-user-select: none;
@@ -406,7 +407,22 @@
     @media (min-width: 40rem) {
       .wrap { max-width: 42rem; }
       .hero h1 { font-size: 2.9rem; }
-      .stage { height: 70vh; }
+    }
+    /* Desktop: fill the viewport and let the map take the leftover height, so the whole
+       (portrait) chart is visible at once — contained and centred (see computeFit) rather
+       than filling the width and running off the bottom. */
+    @media (min-width: 48rem) {
+      .wrap { height: 100vh; display: flex; flex-direction: column; padding-top: 20px; }
+      .home-btn { align-self: flex-start; }
+      .hero { margin: 12px 0 10px; }
+      .search { margin-bottom: 12px; }
+      .stage-wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+      .stage { height: auto; flex: 1 1 auto; min-height: 0; }
+      .hint { margin-top: 8px; }
+      .foot { margin-top: 12px; }
+    }
+    @media (min-width: 64rem) {
+      .wrap { max-width: 52rem; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -708,11 +724,14 @@
   let zoom = 1, fitW = 0;
   const ZMIN = 1, ZMAX = 5;
 
+  function wideView() { return window.matchMedia("(min-width: 48rem)").matches; }
   function computeFit() {
-    // fit to width at zoom 1; the tall portrait map then scrolls vertically,
-    // which fills the stage edge-to-edge (bigger, more legible names) and gives
-    // horizontal scroll room the moment you zoom in, so pinch stays anchored.
-    fitW = stage.clientWidth - 2;
+    const availW = stage.clientWidth - 2, availH = stage.clientHeight - 2;
+    // Wide screens (desktop): contain the whole chart so it's all visible at once,
+    // centred in the stage. Narrow screens (phones): fill the width and scroll
+    // vertically — bigger, more legible names, with horizontal scroll room the
+    // moment you zoom in so pinch stays anchored.
+    fitW = wideView() ? Math.min(availW, availH * (VBW / VBH)) : availW;
   }
   function sizeSvg() {
     const w = fitW * zoom;
@@ -720,24 +739,23 @@
     svg.style.height = (w * VBH / VBW) + "px";
   }
   // Zoom so the content point under (clientX, clientY) stays fixed on screen —
-  // pinch centres on the fingers, wheel on the cursor. Uses the SVG's actual
-  // rendered size before and after, so the focal point is exact. No focal point
-  // (buttons) → zoom about the centre of the stage.
+  // pinch centres on the fingers, wheel on the cursor, buttons on the stage centre.
+  // Works off the SVG's live bounding box, so it stays correct even when the map is
+  // centred (narrower than the stage) rather than pinned to the left.
   function zoomTo(nextZoom, clientX, clientY) {
     nextZoom = Math.max(ZMIN, Math.min(ZMAX, nextZoom));
-    const rect = stage.getBoundingClientRect();
-    const fx = clientX == null ? rect.width / 2 : clientX - rect.left;
-    const fy = clientY == null ? rect.height / 2 : clientY - rect.top;
-    // Sizes are computed, not read from the DOM: an <svg> reports offsetWidth 0,
-    // and we already know its exact pixel size is fitW * zoom.
-    const oldW = fitW * zoom, oldH = oldW * VBH / VBW;
-    const rx = (stage.scrollLeft + fx) / oldW;   // fraction of the map under the focal point
-    const ry = (stage.scrollTop + fy) / oldH;
+    const before = svg.getBoundingClientRect();
+    const fx = clientX == null ? before.left + before.width / 2 : clientX;
+    const fy = clientY == null ? before.top + before.height / 2 : clientY;
+    const rx = before.width ? (fx - before.left) / before.width : 0.5;    // fraction within the map
+    const ry = before.height ? (fy - before.top) / before.height : 0.5;
     zoom = nextZoom;
     sizeSvg();
-    const newW = fitW * zoom, newH = newW * VBH / VBW;
-    stage.scrollLeft = rx * newW - fx;
-    stage.scrollTop = ry * newH - fy;
+    const after = svg.getBoundingClientRect();
+    // scroll so the focal fraction lands back under the focal point (no-op when
+    // there's no overflow to scroll, e.g. a centred map — which is fine, it's all visible)
+    stage.scrollLeft += after.left - (fx - rx * after.width);
+    stage.scrollTop += after.top - (fy - ry * after.height);
   }
   function relayout() { computeFit(); sizeSvg(); }
 
